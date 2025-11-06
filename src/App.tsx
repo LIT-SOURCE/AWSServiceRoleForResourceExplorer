@@ -1,624 +1,443 @@
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-const productList = [
+const heroSlides = [
   {
-    name: "Wellness Essentials Kit",
+    title: "Care crafted for every body",
+    subtitle: "Telehealth • Pharmacy • Wellness",
     description:
-      "Daily vitamins and probiotics curated by pharmacists to bolster immunity and all-day energy.",
-    price: "$64",
-    badge: "Bestseller",
-    accent: "linear-gradient(135deg, rgba(140,239,191,0.8), rgba(151,201,255,0.9))",
+      "Seamlessly consult, compound, and check out with our AI-guided pharmacy experience inspired by the polish of apple.com.",
+    badge: "Now supporting 24/7 video visits",
   },
   {
-    name: "Sleep Harmony Bundle",
+    title: "Smart refills on your schedule",
+    subtitle: "Subscriptions that adapt",
     description:
-      "Restful sleep support featuring melatonin, chamomile, and aromatherapy essentials.",
-    price: "$52",
-    badge: "New",
-    accent: "linear-gradient(135deg, rgba(137,207,240,0.8), rgba(188,240,209,0.9))",
+      "From daily ED therapies to family wellness staples, our automations keep dosages on track and doorstep-ready.",
+    badge: "HIPAA compliant + pharmacist verified",
   },
   {
-    name: "Heart Health Program",
+    title: "Whole-health plans made simple",
+    subtitle: "From supplements to lifestyle coaching",
     description:
-      "30-day supplement plan with pharmacist check-ins and lifestyle tracking tools.",
-    price: "$89",
-    badge: "Member Favorite",
-    accent: "linear-gradient(135deg, rgba(189,243,203,0.85), rgba(132,210,235,0.9))",
-  },
-  {
-    name: "Family First Aid Suite",
-    description:
-      "Smart first aid caddy with refill reminders and pediatric-safe options included.",
-    price: "$74",
-    badge: "Limited",
-    accent: "linear-gradient(135deg, rgba(167,220,231,0.85), rgba(206,249,225,0.9))",
-  },
-  {
-    name: "Active Lifestyle Stack",
-    description:
-      "Electrolyte mixes, joint care, and rapid recovery must-haves for every workout.",
-    price: "$58",
-    badge: "Bundle",
-    accent: "linear-gradient(135deg, rgba(129,226,255,0.82), rgba(162,242,200,0.88))",
-  },
-  {
-    name: "Personalized RX Pack",
-    description:
-      "Pre-sorted daily medications delivered on schedule with pharmacist monitoring.",
-    price: "$112",
-    badge: "Subscription",
-    accent: "linear-gradient(135deg, rgba(154,239,205,0.82), rgba(123,199,255,0.88))",
+      "Bundle the essentials, discover botanicals, and connect with coaches for a life you feel confident living.",
+    badge: "Exclusive launch pricing for members",
   },
 ];
 
-const blogEntries = [
-  {
-    title: "5 Everyday Habits for Stronger Immunity",
-    excerpt: "Discover simple rituals to reinforce your body's natural defenses year-round.",
-    date: "April 12, 2024",
-    category: "Wellness",
-  },
-  {
-    title: "Telehealth vs. In-Store Consults",
-    excerpt: "When to visit us in person and when a video visit is the smart move.",
-    date: "March 28, 2024",
-    category: "Care Advice",
-  },
-  {
-    title: "How We Handcraft Custom Compounds",
-    excerpt: "Peek inside the lab for a look at how precision medicine comes to life.",
-    date: "March 2, 2024",
-    category: "Behind the Counter",
-  },
+const productSubcategories = [
+  "ED Meds",
+  "Supplements",
+  "Wellness",
+  "Personal Care",
+  "Herbal",
 ];
 
-const serviceHighlights = [
+const subscriptionPlans = [
+  { label: "Monthly", price: "$39", highlight: "Flexible starts" },
+  { label: "3 Month", price: "$105", highlight: "Save 10%" },
+  { label: "6 Month", price: "$198", highlight: "Includes pharmacist consult" },
+  { label: "1 Year", price: "$372", highlight: "Two bonus wellness labs" },
+  { label: "Lifetime", price: "$1,499", highlight: "AI concierge + family sharing" },
+];
+
+const healthServices = [
+  { title: "Refill", detail: "Set-and-forget deliveries with adaptive reminders." },
   {
-    icon: "💊",
-    title: "Auto Refills",
-    copy: "Zero-miss medication schedules with text reminders and doorstep delivery.",
-  },
-  {
-    icon: "🩺",
     title: "On-Demand Pharmacists",
-    copy: "Video consults and secure messaging crafted in Google Studio for seamless UX.",
+    detail: "Board-certified experts available instantly for secure telehealth.",
+  },
+  { title: "Fast Drop", detail: "Temperature-safe courier drop-offs in under two hours." },
+  { title: "Free Lifestyle Coaching", detail: "Human coaches + AI insights to keep goals on track." },
+];
+
+const healthCategories = [
+  { title: "ED Meds", copy: "Clinically guided therapies with discreet packaging." },
+  { title: "Supplements", copy: "Evidence-backed blends for energy, immunity, and sleep." },
+  { title: "Wellness", copy: "Daily rituals, trackers, and guided programs." },
+  { title: "Personal Care", copy: "Derm-grade care with gentle botanicals." },
+  { title: "Herbal", copy: "Traditional remedies elevated with modern science." },
+];
+
+const blogPosts = [
+  {
+    title: "Build a smarter supplement stack",
+    excerpt: "Pair AI-guided dosing with pharmacist reviews for the ultimate daily routine.",
+    date: "April 24, 2024",
   },
   {
-    icon: "📦",
-    title: "Same-Day Drop",
-    copy: "Local couriers ensure refrigerated therapies arrive in perfect condition.",
+    title: "Telehealth etiquette 101",
+    excerpt: "Five ways to make your video consults seamless, from prep to follow-up.",
+    date: "April 15, 2024",
   },
   {
-    icon: "🧘‍♀️",
-    title: "Lifestyle Coaching",
-    copy: "Personal health roadmaps designed with physicians, nutritionists, and you.",
+    title: "Inside our compounding lab",
+    excerpt: "See how we merge botanicals and pharmaceuticals for precise results.",
+    date: "April 2, 2024",
   },
 ];
 
-const customerOrders = [
+const productShowcase = [
   {
-    id: "RX-1024",
-    medication: "Vitamin D3 2000IU",
-    status: "Ready for pickup",
-    refillDate: "May 28, 2024",
+    name: "NovaRise Daily Vital Pack",
+    price: "$54",
+    rating: 4.8,
+    status: "Best Seller",
   },
-  {
-    id: "RX-0976",
-    medication: "Allergy Relief 24h",
-    status: "In transit",
-    refillDate: "May 25, 2024",
-  },
-  {
-    id: "RX-0842",
-    medication: "Heart Care Combo",
-    status: "Refill requested",
-    refillDate: "June 2, 2024",
-  },
+  { name: "CalmPulse Sleep Gels", price: "$42", rating: 4.6, status: "Best Seller" },
+  { name: "CardioFlow Omega Trio", price: "$36", rating: 4.7, status: "Best Seller" },
+  { name: "HerbalEase Joint Relief", price: "$48", rating: 4.5, status: "Best Seller" },
+  { name: "PeakFocus Nootropic", price: "$62", rating: 4.9, status: "Best Seller" },
+  { name: "ReVive Hydration Pods", price: "$29", rating: 4.4, status: "Best Seller" },
+  { name: "ImmuniShield Duo", price: "$58", rating: 4.8, status: "Best Seller" },
+  { name: "GlowGuard Skin Serum", price: "$64", rating: 4.6, status: "Best Seller" },
+  { name: "CoreBalance Probiotic", price: "$34", rating: 4.5, status: "Best Seller" },
+  { name: "FlexiMove Support Bands", price: "$39", rating: 4.3, status: "Best Seller" },
+  { name: "ZenWave Mind Tonics", price: "$31", rating: 4.7, status: "New" },
+  { name: "PulseGuard Heart Kit", price: "$76", rating: 4.9, status: "New" },
+  { name: "FreshStart Detox Tea", price: "$22", rating: 4.4, status: "New" },
+  { name: "BrightSight Vision Pack", price: "$55", rating: 4.6, status: "New" },
+  { name: "SereniTeen Hormone Balance", price: "$47", rating: 4.5, status: "New" },
+  { name: "LumaLift Collagen Sticks", price: "$33", rating: 4.8, status: "New" },
+  { name: "Motiv+ Fitness Fuel", price: "$41", rating: 4.6, status: "New" },
+  { name: "BreatheWell Allergy Care", price: "$27", rating: 4.7, status: "New" },
+  { name: "ImmuWave Kids Gummies", price: "$19", rating: 4.4, status: "New" },
+  { name: "SerumFlow Recovery Cream", price: "$46", rating: 4.5, status: "New" },
 ];
 
-const adminMetrics = [
-  { label: "Fulfilled orders", value: "1,248", change: "+12%" },
-  { label: "Inventory accuracy", value: "99.2%", change: "+2%" },
-  { label: "Net promoter score", value: "87", change: "+5" },
+const communityHighlights = [
+  { label: "Customers supported", metric: "48,320" },
+  { label: "Verified 5★ reviews", metric: "6,204" },
 ];
 
-const adminFocus = [
-  "Review specialty cold-chain shipments arriving before noon.",
-  "Approve three pending telehealth prescriptions requiring dosage confirmation.",
-  "Launch the seasonal allergy awareness campaign in Google Studio.",
-];
+function formatRating(rating: number) {
+  return rating.toFixed(1).replace(".0", "");
+}
 
-const contactChannels = [
-  { label: "Customer Support", value: "1-800-MEDI-CARE" },
-  { label: "Pharmacist On Call", value: "+1 (415) 555-0112" },
-  { label: "Email", value: "care@medistudio.health" },
-];
+function chunkProducts<T>(items: T[], rows: number) {
+  const buckets = Array.from({ length: rows }, () => [] as T[]);
+  items.forEach((item, index) => {
+    buckets[index % rows].push(item);
+  });
+  return buckets;
+}
 
-const stores = [
-  { city: "San Francisco", address: "1900 Market Street", hours: "7a – 10p" },
-  { city: "Austin", address: "411 Congress Ave", hours: "8a – 9p" },
-  { city: "Seattle", address: "77 Cascade Way", hours: "7a – 10p" },
-];
+export default function App() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [consentChecked, setConsentChecked] = useState(false);
 
-function App() {
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % heroSlides.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const productRows = useMemo(() => chunkProducts(productShowcase, 3), []);
+
+  const handleHeroSelect = (index: number) => {
+    setActiveSlide(index);
+  };
+
+  const handleCtaSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+  };
+
   return (
-    <div className="app-shell">
-      <nav className="global-nav" aria-label="Primary">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            ⊹
-          </span>
-          MediStudio Pharmacy
+    <div className="site-shell">
+      <header className="global-nav" aria-label="Primary">
+        <div className="nav-left">
+          <button className="nav-login" type="button">
+            Login
+          </button>
+          <button className="nav-cart" type="button" aria-label="Shopping cart">
+            <span aria-hidden="true">🛒</span>
+          </button>
         </div>
-        <ul className="nav-links">
-          <li>
-            <a href="#home">Home</a>
-          </li>
-          <li>
-            <a href="#shop">Shop All</a>
-          </li>
-          <li>
-            <a href="#blog">Blog</a>
-          </li>
-          <li>
-            <a href="#about">About Us</a>
-          </li>
-          <li>
-            <a href="#contact">Contact</a>
-          </li>
-        </ul>
-        <button className="primary-cta">Book Consultation</button>
-      </nav>
+        <div className="nav-center" aria-label="Havok Fitness home">
+          Havok Fitness Pharmacy
+        </div>
+        <nav className="nav-right" aria-label="Primary menu">
+          <a href="#home">Home</a>
+          <div className="nav-dropdown">
+            <button type="button" aria-haspopup="true">
+              Product
+            </button>
+            <div className="dropdown-panel" role="menu">
+              {productSubcategories.map((item) => (
+                <a key={item} href={`#category-${item.toLowerCase().replace(/\s+/g, "-")}`}>
+                  {item}
+                </a>
+              ))}
+            </div>
+          </div>
+          <a href="#blogs">Blogs</a>
+          <a href="#about">About Us</a>
+          <a href="#contact">Contact Us</a>
+        </nav>
+      </header>
 
       <main>
         <section id="home" className="hero">
-          <div className="hero-copy">
-            <p className="eyebrow">Elevated pharmacy care</p>
-            <h1>
-              Apple-inspired clarity, Google Studio-crafted experiences, clinical-grade
-              wellness.
-            </h1>
-            <p>
-              Welcome to MediStudio, the digital-first pharmacy that blends human expertise
-              with intuitive design. Track prescriptions, chat with pharmacists, and get
-              curated wellness kits—anytime, on any device.
-            </p>
-            <div className="hero-actions">
-              <a className="primary-cta" href="#shop">
-                Shop wellness
-              </a>
-              <a className="secondary-cta" href="#dashboards">
-                Explore dashboards
-              </a>
-            </div>
-            <div className="trust-strip">
-              <span>HIPAA compliant</span>
-              <span>24/7 pharmacist chat</span>
-              <span>Rated 4.9/5 by members</span>
-            </div>
-          </div>
-          <div className="hero-panel">
-            <article className="snapshot-card">
-              <h2>Today&apos;s Health Snapshot</h2>
-              <ul>
-                <li>
-                  Personalized RX packs synced
-                  <strong> 100%</strong>
-                </li>
-                <li>
-                  Consultations confirmed<strong> 42</strong>
-                </li>
-                <li>
-                  Wellness plans updated<strong> 68</strong>
-                </li>
-              </ul>
-              <p>Stay aligned with actionable guidance created in Google Studio.</p>
-            </article>
-          </div>
-        </section>
-
-        <section id="shop" className="section products">
-          <header className="section-heading">
-            <div>
-              <p className="eyebrow">Shop all</p>
-              <h2>Curated health programs</h2>
-            </div>
-            <a className="secondary-cta" href="#contact">
-              Need a custom plan?
-            </a>
-          </header>
-          <div className="product-grid">
-            {productList.map((product) => (
+          <div className="hero-visual">
+            {heroSlides.map((slide, index) => (
               <article
-                key={product.name}
-                className="product-card"
-                style={{ backgroundImage: product.accent }}
+                key={slide.title}
+                className={`hero-slide ${index === activeSlide ? "is-active" : ""}`}
               >
-                <div className="card-badge">{product.badge}</div>
-                <h3>{product.name}</h3>
-                <p>{product.description}</p>
-                <div className="card-footer">
-                  <span className="price">{product.price}</span>
-                  <button type="button" className="ghost-cta">
-                    Add to cart
-                  </button>
+                <div className="slide-badge">{slide.badge}</div>
+                <h1>{slide.title}</h1>
+                <p className="slide-subtitle">{slide.subtitle}</p>
+                <p className="slide-body">{slide.description}</p>
+                <div className="slide-actions">
+                  <a className="primary-link" href="#products">
+                    Shop curated care
+                  </a>
+                  <a className="ghost-link" href="#telehealth">
+                    Explore telehealth support
+                  </a>
                 </div>
               </article>
             ))}
           </div>
-        </section>
-
-        <section className="section services" aria-label="Health services">
-          <header className="section-heading">
-            <div>
-              <p className="eyebrow">Health services</p>
-              <h2>Care that flexes with you</h2>
-            </div>
-          </header>
-          <div className="service-grid">
-            {serviceHighlights.map((service) => (
-              <article key={service.title} className="service-card">
-                <span className="service-icon" aria-hidden="true">
-                  {service.icon}
-                </span>
-                <h3>{service.title}</h3>
-                <p>{service.copy}</p>
-              </article>
+          <div className="hero-controls" role="tablist" aria-label="Featured slides">
+            {heroSlides.map((slide, index) => (
+              <button
+                key={slide.title}
+                role="tab"
+                aria-selected={activeSlide === index}
+                className={activeSlide === index ? "is-active" : ""}
+                onClick={() => handleHeroSelect(index)}
+              >
+                <span>{`0${index + 1}`}</span>
+              </button>
             ))}
           </div>
         </section>
 
-        <section id="dashboards" className="section dashboards">
-          <header className="section-heading">
-            <div>
-              <p className="eyebrow">Dashboards</p>
-              <h2>Customer &amp; admin command centers</h2>
-            </div>
+        <section id="telehealth" className="hipaa-banner">
+          <div className="hipaa-card">
+            <h2>HIPAA compliant telehealth, compounded with care</h2>
             <p>
-              Seamless panels bring clarity to every role—from customers tracking wellness
-              wins to admins optimizing pharmacy operations in real time.
+              Secure consults, pharmacist check-ins, and medicine management backed by encrypted
+              AI workflows. Havok Fitness Pharmacy keeps every prescription aligned with HIPAA,
+              so your telehealth, counseling, and medication purchases stay private.
             </p>
-          </header>
-          <div className="dashboard-grid">
-            <article className="dashboard-card customer">
-              <header>
-                <h3>Customer dashboard</h3>
-                <p>Quick-glance insights tuned for everyday health decisions.</p>
-              </header>
-              <div className="metric-row">
-                <div className="metric">
-                  <span className="metric-label">Active prescriptions</span>
-                  <span className="metric-value">6</span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Goals completed</span>
-                  <span className="metric-value">82%</span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Rewards available</span>
-                  <span className="metric-value">$24</span>
-                </div>
-              </div>
-              <div className="table-wrapper" role="region" aria-live="polite">
-                <table>
-                  <caption className="sr-only">Customer orders and refill status</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Order</th>
-                      <th scope="col">Medication</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Refill date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customerOrders.map((order) => (
-                      <tr key={order.id}>
-                        <th scope="row">{order.id}</th>
-                        <td>{order.medication}</td>
-                        <td>{order.status}</td>
-                        <td>{order.refillDate}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <button type="button" className="primary-cta">
-                Manage prescriptions
-              </button>
-            </article>
-
-            <article className="dashboard-card admin">
-              <header>
-                <h3>Admin dashboard</h3>
-                <p>Operational intelligence synchronized across every channel.</p>
-              </header>
-              <div className="metric-row">
-                {adminMetrics.map((metric) => (
-                  <div className="metric" key={metric.label}>
-                    <span className="metric-label">{metric.label}</span>
-                    <span className="metric-value">{metric.value}</span>
-                    <span className="metric-change">{metric.change}</span>
-                  </div>
-                ))}
-              </div>
-              <ul className="focus-list">
-                {adminFocus.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <div className="snapshot">
-                <strong>Live view</strong>
-                <p>
-                  Inventory, revenue, and compliance analytics are visualized through Google
-                  Studio dashboards tailored to pharmacy leadership.
-                </p>
-              </div>
-              <button type="button" className="ghost-cta">
-                Review analytics
-              </button>
-            </article>
-          </div>
-        </section>
-
-        <section id="blog" className="section blog">
-          <header className="section-heading">
-            <div>
-              <p className="eyebrow">Health articles</p>
-              <h2>Read the latest insights</h2>
-            </div>
-            <a className="secondary-cta" href="#contact">
-              Subscribe for updates
-            </a>
-          </header>
-          <div className="blog-grid">
-            {blogEntries.map((entry) => (
-              <article key={entry.title} className="blog-card">
-                <p className="blog-category">{entry.category}</p>
-                <h3>{entry.title}</h3>
-                <p>{entry.excerpt}</p>
-                <div className="blog-meta">
-                  <span>{entry.date}</span>
-                  <button type="button" className="ghost-cta">
-                    Read article
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="about" className="section about">
-          <div className="about-content">
-            <div>
-              <p className="eyebrow">About us</p>
-              <h2>Redefining personalized pharmacy care</h2>
-              <p>
-                MediStudio unites clinical pharmacists, technologists, and designers to deliver
-                frictionless wellness journeys. From compounding labs to telehealth suites, every
-                touchpoint is crafted with empathy and precision inspired by apple.com&apos;s polish.
-              </p>
-            </div>
-            <ul className="about-list">
-              <li>
-                <strong>60+</strong>
-                Board-certified pharmacists across specialties
-              </li>
-              <li>
-                <strong>15</strong>
-                Cities with immersive Wellness Lounges
-              </li>
-              <li>
-                <strong>98%</strong>
-                Member satisfaction with our dashboards
-              </li>
+            <ul>
+              <li>24/7 telehealth support and follow-up messaging</li>
+              <li>Instant prescription buy flow with clinical oversight</li>
+              <li>Seamless insurance coordination and refill reminders</li>
             </ul>
           </div>
         </section>
 
-        <section id="contact" className="section contact">
-          <header className="section-heading">
-            <div>
-              <p className="eyebrow">Contact us</p>
-              <h2>We&apos;re here to help</h2>
-            </div>
+        <section id="subscriptions" className="subscription-section">
+          <header>
+            <h2>Health subscriptions that flex with your goals</h2>
+            <p>Choose a cadence that meets your pace and update anytime.</p>
           </header>
-          <div className="contact-grid">
-            <div className="contact-panel">
-              <h3>Talk to a human</h3>
-              <ul className="contact-list">
-                {contactChannels.map((channel) => (
-                  <li key={channel.label}>
-                    <span>{channel.label}</span>
-                    <strong>{channel.value}</strong>
-                  </li>
+          <div className="subscription-grid">
+            {subscriptionPlans.map((plan) => (
+              <article key={plan.label} className="subscription-card">
+                <h3>{plan.label}</h3>
+                <p className="plan-price">{plan.price}</p>
+                <p className="plan-note">{plan.highlight}</p>
+                <button type="button">Activate plan</button>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="services-section">
+          <header>
+            <h2>Health services, redesigned</h2>
+            <p>Care choices curated by humans, supercharged by AI.</p>
+          </header>
+          <div className="service-grid">
+            {healthServices.map((service) => (
+              <article key={service.title} className="service-card">
+                <h3>{service.title}</h3>
+                <p>{service.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="products" className="category-section">
+          <div className="category-header">
+            <h2>Shop by category</h2>
+            <p>Discover hand-picked collections built for next-level performance.</p>
+          </div>
+          <div className="category-grid">
+            {healthCategories.map((category) => (
+              <article
+                key={category.title}
+                id={`category-${category.title.toLowerCase().replace(/\s+/g, "-")}`}
+                className="category-card"
+              >
+                <h3>{category.title}</h3>
+                <p>{category.copy}</p>
+                <a href="#products">Browse {category.title}</a>
+              </article>
+            ))}
+            <article className="category-card ad-card">
+              <h3>Member-only bundles</h3>
+              <p>
+                Stack therapies, supplements, and coaching into one basket and unlock tiered
+                savings designed for every lifestyle.
+              </p>
+              <a href="#subscriptions">View offers</a>
+            </article>
+          </div>
+        </section>
+
+        <div className="running-marquee" aria-live="polite">
+          <span>30% to 60% off — Deal of the day on select wellness + prescription bundles</span>
+          <span>30% to 60% off — Deal of the day on select wellness + prescription bundles</span>
+          <span>30% to 60% off — Deal of the day on select wellness + prescription bundles</span>
+        </div>
+
+        <section className="product-section">
+          <header>
+            <h2>Best sellers &amp; new finds</h2>
+            <p>Three flowing rows of curated products ready to ship now.</p>
+          </header>
+          <div className="product-board" role="list">
+            {productRows.map((row, rowIndex) => (
+              <div className="product-row" key={rowIndex} role="group">
+                {row.map((product) => (
+                  <article key={product.name} className="product-card" role="listitem">
+                    <span className="product-badge">{product.status}</span>
+                    <h3>{product.name}</h3>
+                    <p className="product-price">{product.price}</p>
+                    <div className="product-rating" aria-label={`Rated ${formatRating(product.rating)} out of 5`}>
+                      <span aria-hidden="true">★★★★★</span>
+                      <span>{formatRating(product.rating)}</span>
+                    </div>
+                    <button type="button">Buy now</button>
+                  </article>
                 ))}
-              </ul>
-              <h3>Visit a studio pharmacy</h3>
-              <ul className="contact-list">
-                {stores.map((store) => (
-                  <li key={store.city}>
-                    <span>{store.city}</span>
-                    <strong>{store.address}</strong>
-                    <small>{store.hours}</small>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <form className="contact-form">
-              <fieldset>
-                <legend>Send a message</legend>
-                <label>
-                  Full name
-                  <input type="text" name="name" placeholder="Jordan Carter" required />
-                </label>
-                <label>
-                  Email
-                  <input type="email" name="email" placeholder="you@example.com" required />
-                </label>
-                <label>
-                  How can we help?
-                  <textarea
-                    name="message"
-                    rows={4}
-                    placeholder="Tell us about your prescription or wellness goals"
-                    required
-                  />
-                </label>
-                <button type="submit" className="primary-cta">
-                  Request support
-                </button>
-              </fieldset>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="running-marquee secondary" aria-live="polite">
+          <span>Get a free health consultation today with a Havok Fitness advisor</span>
+          <span>Get a free health consultation today with a Havok Fitness advisor</span>
+          <span>Get a free health consultation today with a Havok Fitness advisor</span>
+        </div>
+
+        <section id="blogs" className="blog-section">
+          <header>
+            <h2>Insights from the Havok Fitness blog</h2>
+            <p>Fresh guidance from our pharmacists, trainers, and care team.</p>
+          </header>
+          <div className="blog-grid">
+            {blogPosts.map((post) => (
+              <article key={post.title} className="blog-card">
+                <p className="blog-date">{post.date}</p>
+                <h3>{post.title}</h3>
+                <p>{post.excerpt}</p>
+                <a href="#blogs">Read article</a>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="cta-section" id="contact">
+          <div className="cta-card">
+            <h2>Talk with our health advisors</h2>
+            <p>
+              Share your goals and we will match you with a pharmacist-led wellness plan tailored
+              to your routine.
+            </p>
+            <form className="cta-form" onSubmit={handleCtaSubmit}>
+              <label>
+                Name
+                <input type="text" name="name" placeholder="Your full name" required />
+              </label>
+              <label>
+                Email
+                <input type="email" name="email" placeholder="you@example.com" required />
+              </label>
+              <label>
+                Phone
+                <input type="tel" name="phone" placeholder="(555) 123-4567" required />
+              </label>
+              <label className="consent">
+                <input
+                  type="checkbox"
+                  required
+                  checked={consentChecked}
+                  onChange={(event) => setConsentChecked(event.target.checked)}
+                />
+                <span>
+                  By checking this box, I consent to receive text messages from <strong>HAVOK FITNESS LLC</strong>,
+                  including class reminders, promotional offers, and account updates. Message &amp; Data Rates may
+                  apply. Messaging frequency may vary. Reply STOP to unsubscribe or HELP for help. See our
+                  <a href="/sms-terms" target="_blank" rel="noreferrer"> SMS Terms and Conditions</a> and
+                  <a href="/privacy-policy" target="_blank" rel="noreferrer"> Privacy Policy</a>.
+                </span>
+              </label>
+              <button type="submit" disabled={!consentChecked}>
+                Request consultation
+              </button>
             </form>
+          </div>
+        </section>
+
+        <section id="about" className="about-section">
+          <div className="about-card">
+            <h2>About Havok Fitness Pharmacy</h2>
+            <p>
+              We pair trusted pharmacists, telehealth physicians, and AI-driven insights to keep every
+              member powered up. Our teams coordinate compounding, coaching, and compliance in a single
+              flow so you can focus on living fully.
+            </p>
+            <div className="about-grid">
+              <div>
+                <h3>How we work</h3>
+                <ul>
+                  <li>AI-assisted intake to personalize recommendations instantly</li>
+                  <li>Dedicated pharmacist concierge for every subscription tier</li>
+                  <li>Seamless integrations with wearables for adaptive care plans</li>
+                </ul>
+              </div>
+              <div>
+                <h3>Why customers choose us</h3>
+                <ul>
+                  <li>Apple-inspired design that keeps experiences effortless</li>
+                  <li>Encrypted HIPAA-compliant infrastructure across every touchpoint</li>
+                  <li>Exclusive bundles with lifestyle coaching included</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="community-section">
+          <div className="community-card">
+            <h2>Community impact</h2>
+            <div className="community-grid">
+              {communityHighlights.map((highlight) => (
+                <article key={highlight.label}>
+                  <span>{highlight.metric}</span>
+                  <p>{highlight.label}</p>
+                </article>
+              ))}
+            </div>
+            <p className="community-note">
+              Real members. Real results. Stories and reviews flow in daily as we reimagine how fitness
+              and pharmacy unite.
+            </p>
           </div>
         </section>
       </main>
 
       <footer className="site-footer">
-        <div className="footer-top">
-          <div className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              ⊹
-            </span>
-            MediStudio Pharmacy
-          </div>
-          <p>
-            Crafted with the precision of apple.com&apos;s UI and the flexibility of Google Studio to
-            deliver health experiences that simply work.
-          </p>
-        </div>
-        <div className="footer-grid">
-          <div>
-            <h4>About Us</h4>
-            <ul>
-              <li><a href="#about">Our story</a></li>
-              <li><a href="#dashboards">Meet the pharmacists</a></li>
-              <li><a href="#contact">Careers</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Our Products</h4>
-            <ul>
-              <li><a href="#shop">Wellness programs</a></li>
-              <li><a href="#shop">Compounded medicines</a></li>
-              <li><a href="#shop">Family care bundles</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Health Services</h4>
-            <ul>
-              <li><a href="#contact">Pharmacist consults</a></li>
-              <li><a href="#dashboards">Customer dashboard</a></li>
-              <li><a href="#dashboards">Admin analytics</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Prescription Refill</h4>
-            <ul>
-              <li><a href="#dashboards">Manage prescriptions</a></li>
-              <li><a href="#contact">Upload a prescription</a></li>
-              <li><a href="#contact">Insurance partners</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Pharmacists / Our Team</h4>
-            <ul>
-              <li><a href="#about">Clinical team</a></li>
-              <li><a href="#about">Care coordinators</a></li>
-              <li><a href="#about">Wellness experts</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Store Locator</h4>
-            <ul>
-              {stores.map((store) => (
-                <li key={store.city}>
-                  <a href="#contact">{store.city}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4>Contact Us</h4>
-            <ul>
-              {contactChannels.map((channel) => (
-                <li key={channel.value}>
-                  <a href="#contact">{channel.value}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4>FAQs</h4>
-            <ul>
-              <li><a href="#blog">Shipping &amp; delivery</a></li>
-              <li><a href="#blog">Medication safety</a></li>
-              <li><a href="#blog">Telehealth visits</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Health Articles / Blog</h4>
-            <ul>
-              {blogEntries.map((entry) => (
-                <li key={entry.title}>
-                  <a href="#blog">{entry.title}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4>Privacy Policy</h4>
-            <ul>
-              <li><a href="#">Security commitments</a></li>
-              <li><a href="#">Data usage</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Terms &amp; Conditions</h4>
-            <ul>
-              <li><a href="#">Membership terms</a></li>
-              <li><a href="#">Service agreements</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Return &amp; Refund Policy</h4>
-            <ul>
-              <li><a href="#">Wellness kits</a></li>
-              <li><a href="#">Prescription items</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Shipping Information</h4>
-            <ul>
-              <li><a href="#">Same-day delivery</a></li>
-              <li><a href="#">Cold-chain handling</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Customer Support</h4>
-            <ul>
-              <li><a href="#contact">Help center</a></li>
-              <li><a href="#contact">Live chat</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>Follow Us</h4>
-            <ul className="social-links">
-              <li>
-                <a href="#">Instagram</a>
-              </li>
-              <li>
-                <a href="#">LinkedIn</a>
-              </li>
-              <li>
-                <a href="#">YouTube</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <p className="footer-note">© {new Date().getFullYear()} MediStudio Pharmacy. All rights reserved.</p>
+        <p>Havok Fitness Pharmacy &mdash; HIPAA compliant telehealth and fulfillment.</p>
       </footer>
     </div>
   );
 }
-
-export default App;
