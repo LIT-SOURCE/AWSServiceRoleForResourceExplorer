@@ -1,65 +1,45 @@
-body {
-  margin: 0;
-  background: linear-gradient(180deg, rgb(117, 81, 194), rgb(255, 255, 255));
-  display: flex;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  height: 100vh;
-  width: 100vw;
-  justify-content: center;
-  align-items: center;
+:root {
+  color-scheme: light;
+  font-family: "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", system-ui, -apple-system,
+    BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: rgba(8, 25, 43, 0.88);
 }
 
-main {
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(120% 120% at 10% 10%, #d7fff1 0%, rgba(215, 255, 241, 0) 45%),
+    radial-gradient(80% 80% at 90% 5%, #bde8ff 0%, rgba(189, 232, 255, 0) 45%),
+    linear-gradient(160deg, #a9f6ce 0%, #6fc8ff 55%, #0f1f33 100%);
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: stretch;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-  color: white;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(60% 60% at 50% 50%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0));
+  pointer-events: none;
+  mix-blend-mode: screen;
 }
 
-ul {
-  padding-inline-start: 0;
-  margin-block-start: 0;
-  margin-block-end: 0;
-  list-style-type: none;
+#root {
+  flex: 1;
   display: flex;
-  flex-direction: column;
-  margin: 8px 0;
-  border: 1px solid black;
-  gap: 1px;
-  background-color: black;
-  border-radius: 8px;
-  overflow: auto;
-}
-
-li {
-  background-color: white;
-  padding: 8px;
-}
-
-li:hover {
-  background: #dadbf9;
+  align-items: stretch;
+  justify-content: center;
 }
 
 a {
-  font-weight: 800;
-  text-decoration: none;
+  color: inherit;
 }
