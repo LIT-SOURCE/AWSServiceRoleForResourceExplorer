@@ -7,6 +7,14 @@ const client = generateClient<Schema>();
 
 type Todo = Schema["Todo"]["type"];
 
+/**
+ * Application root component that displays a real-time list of todos and provides a dialog for creating new entries.
+ *
+ * Renders the UI shell, subscribes to live updates for Todo items, maintains composer state and draft input,
+ * focuses the input when the composer opens, and handles creating new todos from the composer form.
+ *
+ * @returns The rendered React element tree for the application UI.
+ */
 function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isComposerOpen, setComposerOpen] = useState(false);
