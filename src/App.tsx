@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import "./App.css";
+import cromaLogo from "./assets/croma-logo.svg";
 import { CURRENCY_CODE_SET, CURRENCY_OPTIONS } from "./data/currencies";
 
 type AddressBlock = {
@@ -59,53 +60,65 @@ const createId = () =>
     : Math.random().toString(36).slice(2, 11);
 
 const DEFAULT_INVOICE: Invoice = {
-  title: "Tax Invoice",
-  invoiceNumber: "INV-001",
+  title: "TAX INVOICE",
+  invoiceNumber: "CRMA-0001",
   issueDate: new Date().toISOString().slice(0, 10),
-  dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14)
+  dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
     .toISOString()
     .slice(0, 10),
   currency: "INR",
   company: {
-    name: "Akriti Consulting Pvt. Ltd.",
+    name: "Croma - Infiniti Retail Limited",
     address:
-      "A-123, Business Park\nLower Parel\nMumbai, Maharashtra 400013",
-    email: "accounts@akriticorp.in",
-    phone: "+91 22 5555 1234",
-    website: "https://akriticorp.in",
-    taxId: "AAECA1234F",
-    gstin: "27AAECA1234F1Z7",
+      "Unit No. 701 & 702, 7th Floor\nKensington B, Hiranandani Business Park\nPowai, Mumbai - 400076",
+    email: "support@croma.com",
+    phone: "+91 7207 666 000",
+    website: "https://www.croma.com",
+    taxId: "AACCI0203K",
+    gstin: "27AACCI0203K1ZV",
     state: "Maharashtra",
     stateCode: "27",
   },
   client: {
-    name: "Innotech Imports LLP",
-    address: "Plot 12, Phase II\nHi-Tech City\nHyderabad, Telangana 500081",
-    email: "payables@innotechimports.in",
-    phone: "+91 40 4444 9876",
+    name: "Rahul Sharma",
+    address:
+      "Flat 502, Lake View Residency\nSector 17, Vashi\nNavi Mumbai - 400703",
+    email: "rahul.sharma@example.com",
+    phone: "+91 98200 12345",
     website: "",
-    taxId: "AADCI5678K",
-    gstin: "36AADCI5678K1Z5",
-    state: "Telangana",
-    stateCode: "36",
+    taxId: "ASDPS1234B",
+    gstin: "27ASDPS1234B1Z5",
+    state: "Maharashtra",
+    stateCode: "27",
   },
-  notes: "Thank you for your business.",
+  notes:
+    "Thank you for shopping at Croma. Please retain this invoice for warranty and service support.",
   terms:
-    "Payment due within 14 days via NEFT/IMPS. Late payments may attract interest as per GST regulations.",
+    "Payment accepted via UPI, credit/debit cards, or net banking. Goods once sold are covered by Croma's return and refund policy.",
   lineItems: [
     {
       id: createId(),
-      description: "Digital transformation consulting",
-      quantity: 10,
-      rate: 4500,
+      description: "Samsung 55\" QLED Smart TV (QA55Q60BAKLXL)",
+      quantity: 1,
+      rate: 71990,
       taxPercent: 18,
-      hsnSac: "998313",
+      hsnSac: "85287213",
+    },
+    {
+      id: createId(),
+      description: "Croma 2 Year Extended Warranty",
+      quantity: 1,
+      rate: 5499,
+      taxPercent: 18,
+      hsnSac: "998714",
     },
   ],
   placeOfSupply: "Maharashtra (27)",
   gstTreatment: "intra",
   ewayBill: "",
 };
+
+const DEFAULT_LOGO = cromaLogo;
 
 const STORAGE_KEY = "invoice_workbench_state_v1";
 
@@ -954,7 +967,7 @@ function applyImportedInvoice(current: Invoice, imported: ImportedInvoice): Invo
 
 function App() {
   const [invoice, setInvoice] = useState<Invoice>(cloneInvoice(DEFAULT_INVOICE));
-  const [logo, setLogo] = useState<string | null>(null);
+  const [logo, setLogo] = useState<string | null>(DEFAULT_LOGO);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const previewRef = useRef<HTMLDivElement | null>(null);
   const currencyOptions = useMemo(() => CURRENCY_OPTIONS, []);
@@ -1019,7 +1032,11 @@ function App() {
               : cloneInvoice(DEFAULT_INVOICE).lineItems,
         });
       }
-      setLogo(parsed.logo ?? null);
+      if (Object.prototype.hasOwnProperty.call(parsed, "logo")) {
+        setLogo(parsed.logo ?? null);
+      } else {
+        setLogo(DEFAULT_LOGO);
+      }
       setAttachments(parsed.attachments ?? []);
     } catch (error) {
       console.error("Failed to load cached invoice", error);
@@ -1378,7 +1395,11 @@ function App() {
               ? mergedLineItems
               : cloneInvoice(DEFAULT_INVOICE).lineItems,
         });
-        setLogo(parsed.logo ?? null);
+        if (Object.prototype.hasOwnProperty.call(parsed, "logo")) {
+          setLogo(parsed.logo ?? null);
+        } else {
+          setLogo(DEFAULT_LOGO);
+        }
         setAttachments(parsed.attachments ?? []);
       } catch (error) {
         console.error("Failed to import template", error);
@@ -1390,7 +1411,7 @@ function App() {
 
   function resetToDefault() {
     setInvoice(cloneInvoice(DEFAULT_INVOICE));
-    setLogo(null);
+    setLogo(DEFAULT_LOGO);
     setAttachments([]);
     localStorage.removeItem(STORAGE_KEY);
   }

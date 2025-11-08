@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" role="img" aria-labelledby="title desc">
+  <title id="title">Croma logo</title>
+  <desc id="desc">Croma logo with A Tata Enterprise tagline</desc>
+  <rect width="420" height="120" fill="none" />
+  <g fill="#008c95">
+    <path d="M84.3 75.9c-7.7 0-13.5-2.6-18.7-8.5l-8.1 7.8c7.4 8.2 16.7 12 27.2 12 19.4 0 32.8-13.7 32.8-33.6 0-20-13.1-33.4-33-33.4-10.6 0-19.6 4-27 12l8.1 7.8c5.1-5.9 11.1-8.6 18.8-8.6 12.8 0 21.2 9.2 21.2 22.2 0 12.9-8.6 22.3-21.3 22.3z" />
+    <path d="M121.6 52.7c0 19.5 13 34.5 31 34.5 8.3 0 15.2-3.3 19.5-9.2v8.1h11.8V18.2h-11.8v27.1c-4.3-5.8-11.1-9.3-19.5-9.3-18 0-31 15-31 34.7zm50.8 0c0 12.9-8 22.2-19.5 22.2-11.6 0-19.5-9.4-19.5-22.2 0-12.9 7.9-22.3 19.5-22.3 11.6 0 19.5 9.4 19.5 22.3z" />
+    <path d="M197.3 52.7c0 20 13.6 34.5 33 34.5 19.3 0 32.8-14.5 32.8-34.5 0-19.9-13.5-34.5-32.8-34.5-19.4 0-33 14.6-33 34.5zm54 0c0 13-8.3 22.2-21 22.2-12.9 0-21.3-9.2-21.3-22.2 0-12.9 8.4-22.3 21.3-22.3 12.7 0 21 9.4 21 22.3z" />
+    <path d="M273.7 52.7c0 19.8 13.4 34.5 33 34.5 10.3 0 18.9-4 25.2-11.8l-8-7.7c-4.5 5.5-10.6 8.3-17.1 8.3-12.8 0-21.3-9.3-21.3-23.3 0-13.9 8.5-23.2 21.3-23.2 6.7 0 12.4 2.6 17.1 8.2l8-7.6c-6.3-7.7-14.9-11.7-25.1-11.7-19.6 0-33 14.6-33 34.3z" />
+    <path d="M365.8 18.2H354v68.1h11.8V63.9c0-13.3 6.9-21.5 18-21.5 2.1 0 4 0.2 6 0.8V31c-1.8-0.4-3.6-0.6-5.4-0.6-9 0-15.6 4.7-18.6 12.9z" />
+  </g>
+  <text x="36" y="108" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="24" fill="#008c95" letter-spacing="0.12em">A</text>
+  <text x="70" y="108" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="24" fill="#00a0c6" font-weight="700" letter-spacing="0.12em">TATA</text>
+  <text x="154" y="108" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="24" fill="#008c95" letter-spacing="0.12em">Enterprise</text>
+</svg>
