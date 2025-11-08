@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch EdMeds.shop in Chrome",
+      "request": "launch",
+      "type": "pwa-chrome",
+      "preLaunchTask": "Vite: dev server",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/src",
+      "presentation": {
+        "group": "edmeds",
+        "order": 1
+      }
+    }
+  ]
+}

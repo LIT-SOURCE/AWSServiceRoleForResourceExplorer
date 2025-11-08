@@ -1,25 +1,38 @@
-## AWS Amplify React+Vite Starter Template
+# EdMeds.shop preview app
 
-This repository provides a starter template for creating applications using React+Vite and AWS Amplify, emphasizing easy setup for authentication, API, and database capabilities.
+This repository hosts the marketing preview for **EdMeds.shop**, a US-based ISO-compliant medical store and virtual health consultancy. The site showcases the product catalog, free consultancy program, testimonials, and platform download links for the upcoming iOS, Android, and web experiences.
 
-## Overview
+## Quick start
 
-This template equips you with a foundational React application integrated with AWS Amplify, streamlined for scalability and performance. It is ideal for developers looking to jumpstart their project with pre-configured AWS services like Cognito, AppSync, and DynamoDB.
+```bash
+npm install
+npm run dev
+```
 
-## Features
+By default Vite serves the site on <http://localhost:5173>. When running inside GitHub Codespaces or other remote environments, be sure to forward that port so you can open the preview in your browser.
 
-- **Authentication**: Setup with Amazon Cognito for secure user authentication.
-- **API**: Ready-to-use GraphQL endpoint with AWS AppSync.
-- **Database**: Real-time database powered by Amazon DynamoDB.
+## Shareable browser preview
 
-## Deploying to AWS
+If you need to expose the preview beyond `localhost`, start the development server on an explicit host and port:
 
-For detailed instructions on deploying your application, refer to the [deployment section](https://docs.amplify.aws/react/start/quickstart/#deploy-a-fullstack-app-to-aws) of our documentation.
+```bash
+npm run dev:host
+```
 
-## Security
+The script binds Vite to `0.0.0.0:4173`, which makes it easy to use port forwarding tools (including Visual Studio and Codespaces) to share the preview with teammates.
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+## Visual Studio Code integration
+
+The `.vscode/` folder contains ready-to-run launch and task configurations. Open the repository in Visual Studio Code and press <kbd>F5</kbd> to start the `Vite: dev server` task and attach Chrome automatically. There is also a `Vite: build` task for generating a production bundle without leaving the editor.
+
+## Production build
+
+```bash
+npm run build
+```
+
+The compiled assets are output to the `dist/` directory, ready to deploy to static hosting or to integrate with an Amplify backend.
 
 ## License
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+This project is released under the [MIT-0 License](LICENSE).
