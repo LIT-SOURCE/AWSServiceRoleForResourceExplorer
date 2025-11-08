@@ -154,6 +154,17 @@ label.full {
   grid-column: 1 / -1;
 }
 
+.logo-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.logo-actions .file-input {
+  margin: 0;
+}
+
 button {
   font: inherit;
 }
@@ -176,10 +187,35 @@ button.danger:hover {
   background: rgba(255, 86, 86, 0.3);
 }
 
+button.ghost {
+  border: 1px solid rgba(23, 33, 43, 0.15);
+  background: rgba(23, 33, 43, 0.03);
+  color: #2a5298;
+  border-radius: 0.75rem;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+button.ghost:hover {
+  background: rgba(42, 82, 152, 0.08);
+  border-color: rgba(42, 82, 152, 0.4);
+  color: #1e3c72;
+}
+
 .line-items {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-scroll .line-items {
+  min-width: 820px;
 }
 
 .line-items th,
@@ -264,13 +300,31 @@ button.danger:hover {
 .preview-header {
   display: flex;
   gap: 1.5rem;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .preview-header img {
   width: 90px;
   height: 90px;
   object-fit: contain;
+}
+
+.logo-placeholder {
+  width: 90px;
+  height: 90px;
+  border-radius: 0.75rem;
+  border: 2px dashed rgba(23, 33, 43, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(23, 33, 43, 0.45);
+  background: rgba(23, 33, 43, 0.02);
+  text-align: center;
+  padding: 0.5rem;
+  line-height: 1.2;
 }
 
 .preview-header h2 {
@@ -280,7 +334,7 @@ button.danger:hover {
 
 .invoice-meta {
   display: grid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem 1.5rem;
   margin-top: 0.5rem;
   font-size: 0.9rem;
@@ -292,6 +346,23 @@ button.danger:hover {
   color: rgba(23, 33, 43, 0.6);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gst-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem 1.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.gst-meta .label {
+  display: block;
+  font-weight: 600;
+  color: rgba(23, 33, 43, 0.55);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -331,9 +402,18 @@ button.danger:hover {
   border-bottom: 2px solid rgba(23, 33, 43, 0.1);
 }
 
+.preview-table th.numeric {
+  text-align: right;
+}
+
 .preview-table td {
   padding: 0.75rem 0;
   border-bottom: 1px solid rgba(23, 33, 43, 0.08);
+}
+
+.preview-table tbody td.numeric.light {
+  font-weight: 500;
+  color: rgba(23, 33, 43, 0.85);
 }
 
 .preview-table tfoot td {

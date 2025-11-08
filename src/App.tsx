@@ -10,6 +10,9 @@ type AddressBlock = {
   phone: string;
   website: string;
   taxId: string;
+  gstin: string;
+  state: string;
+  stateCode: string;
 };
 
 type InvoiceLineItem = {
@@ -18,6 +21,7 @@ type InvoiceLineItem = {
   quantity: number;
   rate: number;
   taxPercent: number;
+  hsnSac: string;
 };
 
 type Attachment = {
@@ -38,6 +42,9 @@ type Invoice = {
   notes: string;
   terms: string;
   lineItems: InvoiceLineItem[];
+  placeOfSupply: string;
+  gstTreatment: "intra" | "inter";
+  ewayBill: string;
 };
 
 type ImportedInvoice = Partial<Omit<Invoice, "company" | "client" | "lineItems">> & {
@@ -52,40 +59,52 @@ const createId = () =>
     : Math.random().toString(36).slice(2, 11);
 
 const DEFAULT_INVOICE: Invoice = {
-  title: "Professional Invoice",
+  title: "Tax Invoice",
   invoiceNumber: "INV-001",
   issueDate: new Date().toISOString().slice(0, 10),
   dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14)
     .toISOString()
     .slice(0, 10),
-  currency: "USD",
+  currency: "INR",
   company: {
-    name: "Your Company",
-    address: "123 Business Rd.\nSuite 100\nMetropolis, USA",
-    email: "billing@example.com",
-    phone: "+1 (555) 123-4567",
-    website: "https://example.com",
-    taxId: "AB-123456",
+    name: "Akriti Consulting Pvt. Ltd.",
+    address:
+      "A-123, Business Park\nLower Parel\nMumbai, Maharashtra 400013",
+    email: "accounts@akriticorp.in",
+    phone: "+91 22 5555 1234",
+    website: "https://akriticorp.in",
+    taxId: "AAECA1234F",
+    gstin: "27AAECA1234F1Z7",
+    state: "Maharashtra",
+    stateCode: "27",
   },
   client: {
-    name: "Client Name",
-    address: "456 Client Ave.\nFloor 5\nGotham, USA",
-    email: "accounts-payable@example.org",
-    phone: "+1 (555) 765-4321",
+    name: "Innotech Imports LLP",
+    address: "Plot 12, Phase II\nHi-Tech City\nHyderabad, Telangana 500081",
+    email: "payables@innotechimports.in",
+    phone: "+91 40 4444 9876",
     website: "",
-    taxId: "",
+    taxId: "AADCI5678K",
+    gstin: "36AADCI5678K1Z5",
+    state: "Telangana",
+    stateCode: "36",
   },
   notes: "Thank you for your business.",
-  terms: "Payment due within 14 days via bank transfer.",
+  terms:
+    "Payment due within 14 days via NEFT/IMPS. Late payments may attract interest as per GST regulations.",
   lineItems: [
     {
       id: createId(),
-      description: "Consulting services",
+      description: "Digital transformation consulting",
       quantity: 10,
-      rate: 120,
-      taxPercent: 5,
+      rate: 4500,
+      taxPercent: 18,
+      hsnSac: "998313",
     },
   ],
+  placeOfSupply: "Maharashtra (27)",
+  gstTreatment: "intra",
+  ewayBill: "",
 };
 
 const STORAGE_KEY = "invoice_workbench_state_v1";
@@ -131,7 +150,7 @@ const CURRENCY_SYMBOL_MAP: Record<string, string> = {
   "₼": "AZN",
 };
 
-const LINE_ITEM_STOP_WORDS = /\b(invoice|subtotal|total|tax|amount due|balance|bill to|bill from|notes|terms|payment|due date|issue date)\b/i;
+const LINE_ITEM_STOP_WORDS = /\b(invoice|subtotal|total|tax|cgst|sgst|igst|gst|amount due|balance|bill to|bill from|notes|terms|payment|due date|issue date)\b/i;
 
 function normalizeDateString(value: string | undefined): string | undefined {
   if (!value) {
@@ -269,10 +288,39 @@ function interpretInvoiceText(rawText: string): ImportedInvoice {
   ]);
   if (companyBlock) {
     const [name, ...rest] = companyBlock.split("\n");
-    result.company = {
+    const filtered = rest.filter((line) => {
+      const normalized = line.trim().toLowerCase();
+      return !(
+        normalized.startsWith("gstin") ||
+        normalized.startsWith("pan") ||
+        normalized.startsWith("state code") ||
+        normalized.startsWith("state") ||
+        normalized.startsWith("place of supply")
+      );
+    });
+    const addressLines = filtered.filter((line) => line.trim().length > 0);
+    const companyDetails: Partial<AddressBlock> = {
       name: name ?? "",
-      address: rest.join("\n"),
+      address:
+        addressLines.length > 0 ? addressLines.join("\n") : rest.join("\n"),
     };
+    const gstMatch = companyBlock.match(/GSTIN\s*[:\-]?\s*([0-9A-Z]{15})/i);
+    if (gstMatch) {
+      companyDetails.gstin = gstMatch[1];
+    }
+    const panMatch = companyBlock.match(/PAN\s*[:\-]?\s*([A-Z]{5}\d{4}[A-Z])/i);
+    if (panMatch) {
+      companyDetails.taxId = panMatch[1];
+    }
+    const stateCodeMatch = companyBlock.match(/State\s*Code\s*[:\-]?\s*(\d{2})/i);
+    if (stateCodeMatch) {
+      companyDetails.stateCode = stateCodeMatch[1];
+    }
+    const stateMatch = companyBlock.match(/State(?!\s*Code)\s*[:\-]?\s*([A-Za-z\s]+)/i);
+    if (stateMatch) {
+      companyDetails.state = stateMatch[1].trim();
+    }
+    result.company = companyDetails;
   }
 
   const clientBlock = extractLabeledBlock(text, ["Bill To", "Client", "Buyer"], [
@@ -283,10 +331,39 @@ function interpretInvoiceText(rawText: string): ImportedInvoice {
   ]);
   if (clientBlock) {
     const [name, ...rest] = clientBlock.split("\n");
-    result.client = {
+    const filtered = rest.filter((line) => {
+      const normalized = line.trim().toLowerCase();
+      return !(
+        normalized.startsWith("gstin") ||
+        normalized.startsWith("pan") ||
+        normalized.startsWith("state code") ||
+        normalized.startsWith("state") ||
+        normalized.startsWith("place of supply")
+      );
+    });
+    const addressLines = filtered.filter((line) => line.trim().length > 0);
+    const clientDetails: Partial<AddressBlock> = {
       name: name ?? "",
-      address: rest.join("\n"),
+      address:
+        addressLines.length > 0 ? addressLines.join("\n") : rest.join("\n"),
     };
+    const clientGstMatch = clientBlock.match(/GSTIN\s*[:\-]?\s*([0-9A-Z]{15})/i);
+    if (clientGstMatch) {
+      clientDetails.gstin = clientGstMatch[1];
+    }
+    const clientPanMatch = clientBlock.match(/PAN\s*[:\-]?\s*([A-Z]{5}\d{4}[A-Z])/i);
+    if (clientPanMatch) {
+      clientDetails.taxId = clientPanMatch[1];
+    }
+    const clientStateCodeMatch = clientBlock.match(/State\s*Code\s*[:\-]?\s*(\d{2})/i);
+    if (clientStateCodeMatch) {
+      clientDetails.stateCode = clientStateCodeMatch[1];
+    }
+    const clientStateMatch = clientBlock.match(/State(?!\s*Code)\s*[:\-]?\s*([A-Za-z\s]+)/i);
+    if (clientStateMatch) {
+      clientDetails.state = clientStateMatch[1].trim();
+    }
+    result.client = clientDetails;
   }
 
   const notes = extractSection(text, "Notes");
@@ -296,6 +373,26 @@ function interpretInvoiceText(rawText: string): ImportedInvoice {
   const terms = extractSection(text, "Terms");
   if (terms) {
     result.terms = terms;
+  }
+
+  const placeOfSupplyMatch = text.match(/Place\s+of\s+Supply\s*[:\-]?\s*([^\n]+)/i);
+  if (placeOfSupplyMatch) {
+    result.placeOfSupply = placeOfSupplyMatch[1].trim();
+  }
+
+  const ewayBillMatch = text.match(
+    /E[-\s]?Way\s+Bill(?:\s*(?:No\.?|Number))?\s*[:\-]?\s*([A-Za-z0-9]+)/i
+  );
+  if (ewayBillMatch) {
+    result.ewayBill = ewayBillMatch[1].trim();
+  }
+
+  if (!result.gstTreatment) {
+    if (/IGST/i.test(text) && !/CGST/i.test(text)) {
+      result.gstTreatment = "inter";
+    } else if (/CGST/i.test(text) && /SGST/i.test(text)) {
+      result.gstTreatment = "intra";
+    }
   }
 
   const lines = text
@@ -332,6 +429,7 @@ function interpretInvoiceText(rawText: string): ImportedInvoice {
       quantity,
       rate,
       taxPercent: Number.isFinite(taxPercent) ? taxPercent : 0,
+      hsnSac: "",
     });
   }
   if (lineItems.length > 0) {
@@ -823,6 +921,15 @@ function applyImportedInvoice(current: Invoice, imported: ImportedInvoice): Invo
   if (imported.terms) {
     next.terms = imported.terms;
   }
+  if (imported.placeOfSupply) {
+    next.placeOfSupply = imported.placeOfSupply;
+  }
+  if (imported.gstTreatment === "intra" || imported.gstTreatment === "inter") {
+    next.gstTreatment = imported.gstTreatment;
+  }
+  if (typeof imported.ewayBill === "string") {
+    next.ewayBill = imported.ewayBill;
+  }
   if (imported.currency) {
     const normalized = imported.currency.toUpperCase();
     if (CURRENCY_CODE_SET.has(normalized)) {
@@ -839,6 +946,7 @@ function applyImportedInvoice(current: Invoice, imported: ImportedInvoice): Invo
     next.lineItems = imported.lineItems.map((item) => ({
       ...item,
       id: item.id || createId(),
+      hsnSac: item.hsnSac ?? "",
     }));
   }
   return next;
@@ -882,19 +990,27 @@ function App() {
     try {
       const parsed = JSON.parse(cached) as PersistedState;
       if (parsed.invoice) {
+        const defaults = cloneInvoice(DEFAULT_INVOICE);
         const normalizedCurrency = parsed.invoice.currency
           ? parsed.invoice.currency.toUpperCase()
           : DEFAULT_INVOICE.currency;
         const mergedLineItems = (parsed.invoice.lineItems ?? []).map((item) => ({
           ...item,
           id: item.id || createId(),
+          hsnSac: item.hsnSac ?? "",
         }));
         setInvoice({
-          ...cloneInvoice(DEFAULT_INVOICE),
+          ...defaults,
           ...parsed.invoice,
           currency: CURRENCY_CODE_SET.has(normalizedCurrency)
             ? normalizedCurrency
             : DEFAULT_INVOICE.currency,
+          gstTreatment:
+            parsed.invoice.gstTreatment === "inter"
+              ? "inter"
+              : defaults.gstTreatment,
+          placeOfSupply: parsed.invoice.placeOfSupply ?? defaults.placeOfSupply,
+          ewayBill: parsed.invoice.ewayBill ?? defaults.ewayBill,
           company: { ...DEFAULT_INVOICE.company, ...parsed.invoice.company },
           client: { ...DEFAULT_INVOICE.client, ...parsed.invoice.client },
           lineItems:
@@ -920,18 +1036,28 @@ function App() {
   }, [invoice, logo, attachments]);
 
   const totals = useMemo(() => {
-    const subtotal = invoice.lineItems.reduce(
-      (sum, item) => sum + item.quantity * item.rate,
-      0
+    const aggregate = invoice.lineItems.reduce(
+      (sum, item) => {
+        const taxableValue = item.quantity * item.rate;
+        const rate = Number.isFinite(item.taxPercent) ? item.taxPercent : 0;
+        const normalizedRate = Math.max(rate, 0);
+        const gstAmount = (taxableValue * normalizedRate) / 100;
+        sum.subtotal += taxableValue;
+        if (invoice.gstTreatment === "inter") {
+          sum.igst += gstAmount;
+        } else {
+          const split = gstAmount / 2;
+          sum.cgst += split;
+          sum.sgst += split;
+        }
+        return sum;
+      },
+      { subtotal: 0, cgst: 0, sgst: 0, igst: 0 }
     );
-    const tax = invoice.lineItems.reduce(
-      (sum, item) =>
-        sum + (item.quantity * item.rate * item.taxPercent) / 100,
-      0
-    );
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
-  }, [invoice.lineItems]);
+    const tax = aggregate.cgst + aggregate.sgst + aggregate.igst;
+    const total = aggregate.subtotal + tax;
+    return { ...aggregate, tax, total };
+  }, [invoice.lineItems, invoice.gstTreatment]);
 
   function handleCompanyChange<K extends keyof AddressBlock>(
     key: K,
@@ -991,6 +1117,7 @@ function App() {
           quantity: 1,
           rate: 0,
           taxPercent: 0,
+          hsnSac: "",
         },
       ],
     }));
@@ -1021,7 +1148,7 @@ function App() {
           ? {
               ...item,
               [key]:
-                key === "description"
+                key === "description" || key === "hsnSac"
                   ? value
                   : Number.isNaN(Number(value))
                   ? item[key]
@@ -1056,6 +1183,12 @@ function App() {
       table { width: 100%; border-collapse: collapse; }
       th, td { padding: 0.75rem 0; border-bottom: 1px solid rgba(23, 33, 43, 0.12); }
       thead th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
+      thead th.numeric { text-align: right; }
+      .invoice-meta, .gst-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem 1.5rem; margin-top: 0.75rem; font-size: 0.9rem; }
+      .gst-meta { font-size: 0.85rem; }
+      .invoice-meta .label, .gst-meta .label { display: block; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(23, 33, 43, 0.6); }
+      .numeric { text-align: right; font-weight: 600; }
+      .numeric.light { font-weight: 500; }
       tfoot td { font-weight: 700; }
       .preview-attachments { page-break-inside: avoid; }
     `;
@@ -1211,19 +1344,27 @@ function App() {
         if (!parsed.invoice) {
           throw new Error("Invalid template format");
         }
+        const defaults = cloneInvoice(DEFAULT_INVOICE);
         const normalizedCurrency = parsed.invoice.currency
           ? parsed.invoice.currency.toUpperCase()
           : DEFAULT_INVOICE.currency;
         const mergedLineItems = (parsed.invoice.lineItems ?? []).map((item) => ({
           ...item,
           id: item.id || createId(),
+          hsnSac: item.hsnSac ?? "",
         }));
         setInvoice({
-          ...cloneInvoice(DEFAULT_INVOICE),
+          ...defaults,
           ...parsed.invoice,
           currency: CURRENCY_CODE_SET.has(normalizedCurrency)
             ? normalizedCurrency
             : DEFAULT_INVOICE.currency,
+          gstTreatment:
+            parsed.invoice.gstTreatment === "inter"
+              ? "inter"
+              : defaults.gstTreatment,
+          placeOfSupply: parsed.invoice.placeOfSupply ?? defaults.placeOfSupply,
+          ewayBill: parsed.invoice.ewayBill ?? defaults.ewayBill,
           company: {
             ...DEFAULT_INVOICE.company,
             ...parsed.invoice.company,
@@ -1366,6 +1507,39 @@ function App() {
                 ))}
               </select>
             </label>
+            <label>
+              Place of Supply
+              <input
+                value={invoice.placeOfSupply}
+                onChange={(event) =>
+                  handleInvoiceFieldChange("placeOfSupply", event.target.value)
+                }
+              />
+            </label>
+            <label>
+              GST Treatment
+              <select
+                value={invoice.gstTreatment}
+                onChange={(event) =>
+                  handleInvoiceFieldChange(
+                    "gstTreatment",
+                    event.target.value === "inter" ? "inter" : "intra"
+                  )
+                }
+              >
+                <option value="intra">Intra-state (CGST + SGST)</option>
+                <option value="inter">Inter-state (IGST)</option>
+              </select>
+            </label>
+            <label>
+              E-Way Bill No.
+              <input
+                value={invoice.ewayBill}
+                onChange={(event) =>
+                  handleInvoiceFieldChange("ewayBill", event.target.value)
+                }
+              />
+            </label>
           </div>
 
           <div className="panel">
@@ -1408,11 +1582,38 @@ function App() {
                 />
               </label>
               <label>
-                Tax ID
+                PAN
                 <input
                   value={invoice.company.taxId}
                   onChange={(event) =>
                     handleCompanyChange("taxId", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                GSTIN
+                <input
+                  value={invoice.company.gstin}
+                  onChange={(event) =>
+                    handleCompanyChange("gstin", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                State
+                <input
+                  value={invoice.company.state}
+                  onChange={(event) =>
+                    handleCompanyChange("state", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                State Code
+                <input
+                  value={invoice.company.stateCode}
+                  onChange={(event) =>
+                    handleCompanyChange("stateCode", event.target.value)
                   }
                 />
               </label>
@@ -1429,14 +1630,25 @@ function App() {
             </div>
             <label className="full">
               Logo
-              <label className="file-input">
-                Upload Logo
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                />
-              </label>
+              <div className="logo-actions">
+                <label className="file-input">
+                  Upload Logo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                  />
+                </label>
+                {logo ? (
+                  <button
+                    type="button"
+                    onClick={() => setLogo(null)}
+                    className="ghost"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </label>
           </div>
 
@@ -1480,11 +1692,38 @@ function App() {
                 />
               </label>
               <label>
-                Tax ID
+                PAN
                 <input
                   value={invoice.client.taxId}
                   onChange={(event) =>
                     handleClientChange("taxId", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                GSTIN
+                <input
+                  value={invoice.client.gstin}
+                  onChange={(event) =>
+                    handleClientChange("gstin", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                State
+                <input
+                  value={invoice.client.state}
+                  onChange={(event) =>
+                    handleClientChange("state", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                State Code
+                <input
+                  value={invoice.client.stateCode}
+                  onChange={(event) =>
+                    handleClientChange("stateCode", event.target.value)
                   }
                 />
               </label>
@@ -1503,21 +1742,27 @@ function App() {
 
           <div className="panel">
             <h3>Line Items</h3>
-            <table className="line-items">
-              <thead>
+            <div className="table-scroll">
+              <table className="line-items">
+                <thead>
                 <tr>
                   <th>Description</th>
-                  <th>Qty</th>
-                  <th>Rate</th>
-                  <th>Tax %</th>
-                  <th>Total</th>
+                  <th>HSN/SAC</th>
+                  <th className="numeric">Qty</th>
+                  <th className="numeric">Rate</th>
+                  <th className="numeric">GST %</th>
+                  <th className="numeric">Taxable Value</th>
+                  <th className="numeric">GST Amount</th>
+                  <th className="numeric">Line Total</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {invoice.lineItems.map((item) => {
-                  const lineTotal =
-                    item.quantity * item.rate * (1 + item.taxPercent / 100);
+                  const taxableValue = item.quantity * item.rate;
+                  const gstAmount =
+                    (taxableValue * Math.max(item.taxPercent, 0)) / 100;
+                  const lineTotal = taxableValue + gstAmount;
                   return (
                     <tr key={item.id}>
                       <td>
@@ -1531,6 +1776,14 @@ function App() {
                             )
                           }
                           rows={2}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          value={item.hsnSac}
+                          onChange={(event) =>
+                            updateLineItem(item.id, "hsnSac", event.target.value)
+                          }
                         />
                       </td>
                       <td>
@@ -1571,6 +1824,12 @@ function App() {
                         />
                       </td>
                       <td className="numeric">
+                        {formatCurrency(taxableValue)}
+                      </td>
+                      <td className="numeric">
+                        {formatCurrency(gstAmount)}
+                      </td>
+                      <td className="numeric">
                         {formatCurrency(lineTotal)}
                       </td>
                       <td className="actions">
@@ -1592,7 +1851,8 @@ function App() {
                   );
                 })}
               </tbody>
-            </table>
+              </table>
+            </div>
             <button type="button" onClick={addLineItem} className="primary">
               Add Line Item
             </button>
@@ -1681,7 +1941,11 @@ function App() {
 
         <section className="preview" ref={previewRef}>
           <div className="preview-header">
-            {logo ? <img src={logo} alt="Company logo" /> : null}
+            {logo ? (
+              <img src={logo} alt="Company logo" />
+            ) : (
+              <div className="logo-placeholder">Upload Logo</div>
+            )}
             <div>
               <h2>{invoice.title}</h2>
               <div className="invoice-meta">
@@ -1697,6 +1961,26 @@ function App() {
                   <span className="label">Due Date</span>
                   <span>{invoice.dueDate}</span>
                 </div>
+              </div>
+              <div className="gst-meta">
+                <div>
+                  <span className="label">Place of Supply</span>
+                  <span>{invoice.placeOfSupply || "—"}</span>
+                </div>
+                <div>
+                  <span className="label">GST Treatment</span>
+                  <span>
+                    {invoice.gstTreatment === "inter"
+                      ? "Inter-state (IGST)"
+                      : "Intra-state (CGST + SGST)"}
+                  </span>
+                </div>
+                {invoice.ewayBill ? (
+                  <div>
+                    <span className="label">E-Way Bill</span>
+                    <span>{invoice.ewayBill}</span>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -1731,8 +2015,25 @@ function App() {
                     <br />
                   </span>
                 )}
+                {invoice.company.gstin && (
+                  <span>
+                    GSTIN: {invoice.company.gstin}
+                    <br />
+                  </span>
+                )}
                 {invoice.company.taxId && (
-                  <span>Tax ID: {invoice.company.taxId}</span>
+                  <span>
+                    PAN: {invoice.company.taxId}
+                    <br />
+                  </span>
+                )}
+                {(invoice.company.state || invoice.company.stateCode) && (
+                  <span>
+                    State: {invoice.company.state}
+                    {invoice.company.stateCode
+                      ? ` (${invoice.company.stateCode})`
+                      : ""}
+                  </span>
                 )}
               </p>
             </div>
@@ -1765,8 +2066,25 @@ function App() {
                     <br />
                   </span>
                 )}
+                {invoice.client.gstin && (
+                  <span>
+                    GSTIN: {invoice.client.gstin}
+                    <br />
+                  </span>
+                )}
                 {invoice.client.taxId && (
-                  <span>Tax ID: {invoice.client.taxId}</span>
+                  <span>
+                    PAN: {invoice.client.taxId}
+                    <br />
+                  </span>
+                )}
+                {(invoice.client.state || invoice.client.stateCode) && (
+                  <span>
+                    State: {invoice.client.state}
+                    {invoice.client.stateCode
+                      ? ` (${invoice.client.stateCode})`
+                      : ""}
+                  </span>
                 )}
               </p>
             </div>
@@ -1776,51 +2094,107 @@ function App() {
             <thead>
               <tr>
                 <th>Description</th>
-                <th>Qty</th>
-                <th>Rate</th>
-                <th>Tax</th>
-                <th>Total</th>
+                <th>HSN/SAC</th>
+                <th className="numeric">Qty</th>
+                <th className="numeric">Rate</th>
+                <th className="numeric">Taxable Value</th>
+                <th>GST %</th>
+                <th className="numeric">GST Amount</th>
+                <th className="numeric">Line Total</th>
               </tr>
             </thead>
             <tbody>
-              {invoice.lineItems.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.description}</td>
-                  <td>{item.quantity}</td>
-                  <td>
-                    {formatCurrency(item.rate)}
-                  </td>
-                  <td>{item.taxPercent}%</td>
-                  <td>
-                    {formatCurrency(
-                      item.quantity * item.rate * (1 + item.taxPercent / 100)
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {invoice.lineItems.map((item) => {
+                const taxableValue = item.quantity * item.rate;
+                const gstRate = Math.max(item.taxPercent, 0);
+                const gstAmount = (taxableValue * gstRate) / 100;
+                const lineTotal = taxableValue + gstAmount;
+                const formatPercent = (value: number) => {
+                  if (Number.isInteger(value)) {
+                    return `${value}`;
+                  }
+                  return value
+                    .toFixed(2)
+                    .replace(/\.00$/, "")
+                    .replace(/(\.\d)0$/, "$1");
+                };
+                const gstLabel =
+                  invoice.gstTreatment === "inter"
+                    ? `${formatPercent(gstRate)}% IGST`
+                    : `${formatPercent(gstRate / 2)}% CGST + ${formatPercent(
+                        gstRate / 2
+                      )}% SGST`;
+                return (
+                  <tr key={item.id}>
+                    <td>{item.description}</td>
+                    <td>{item.hsnSac || "—"}</td>
+                    <td className="numeric light">{item.quantity}</td>
+                    <td className="numeric light">{formatCurrency(item.rate)}</td>
+                    <td className="numeric light">
+                      {formatCurrency(taxableValue)}
+                    </td>
+                    <td>{gstLabel}</td>
+                    <td className="numeric light">
+                      {formatCurrency(gstAmount)}
+                    </td>
+                    <td className="numeric light">
+                      {formatCurrency(lineTotal)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={4} className="numeric">
-                  Subtotal
+                <td colSpan={7} className="numeric">
+                  Subtotal (Taxable Value)
                 </td>
-                <td>
+                <td className="numeric">
                   {formatCurrency(totals.subtotal)}
                 </td>
               </tr>
+              {invoice.gstTreatment === "inter" ? (
+                <tr>
+                  <td colSpan={7} className="numeric">
+                    IGST Total
+                  </td>
+                  <td className="numeric">
+                    {formatCurrency(totals.igst)}
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  <tr>
+                    <td colSpan={7} className="numeric">
+                      CGST Total
+                    </td>
+                    <td className="numeric">
+                      {formatCurrency(totals.cgst)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colSpan={7} className="numeric">
+                      SGST Total
+                    </td>
+                    <td className="numeric">
+                      {formatCurrency(totals.sgst)}
+                    </td>
+                  </tr>
+                </>
+              )}
               <tr>
-                <td colSpan={4} className="numeric">
-                  Tax
+                <td colSpan={7} className="numeric">
+                  GST Amount
                 </td>
-                <td>
+                <td className="numeric">
                   {formatCurrency(totals.tax)}
                 </td>
               </tr>
               <tr>
-                <td colSpan={4} className="numeric grand-total">
-                  Total Due
+                <td colSpan={7} className="numeric grand-total">
+                  Total Invoice Value
                 </td>
-                <td className="grand-total">
+                <td className="numeric">
                   {formatCurrency(totals.total)}
                 </td>
               </tr>
