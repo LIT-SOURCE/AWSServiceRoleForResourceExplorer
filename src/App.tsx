@@ -9,6 +9,7 @@ type AddressBlock = {
   address: string;
   email: string;
   phone: string;
+  phoneAlt: string;
   website: string;
   taxId: string;
   gstin: string;
@@ -19,6 +20,7 @@ type AddressBlock = {
 type InvoiceLineItem = {
   id: string;
   description: string;
+  serialNumber?: string;
   quantity: number;
   rate: number;
   taxPercent: number;
@@ -36,22 +38,39 @@ type Invoice = {
   title: string;
   invoiceNumber: string;
   issueDate: string;
+  invoiceTime: string;
   dueDate: string;
   currency: string;
+  qrType: string;
+  irn: string;
   company: AddressBlock;
   client: AddressBlock;
   notes: string;
   terms: string;
+  paymentSummary: string;
   lineItems: InvoiceLineItem[];
   placeOfSupply: string;
   gstTreatment: "intra" | "inter";
   ewayBill: string;
+  charges: {
+    shipping: number;
+    wrapping: number;
+    donation: number;
+  };
+  qrImageDataUrl?: string | null;
 };
 
-type ImportedInvoice = Partial<Omit<Invoice, "company" | "client" | "lineItems">> & {
+type ImportedInvoice = Partial<
+  Omit<
+    Invoice,
+    "company" | "client" | "lineItems" | "charges" | "paymentSummary"
+  >
+> & {
   company?: Partial<AddressBlock>;
   client?: Partial<AddressBlock>;
   lineItems?: InvoiceLineItem[];
+  charges?: Partial<Invoice["charges"]>;
+  paymentSummary?: string;
 };
 
 const createId = () =>
@@ -60,62 +79,78 @@ const createId = () =>
     : Math.random().toString(36).slice(2, 11);
 
 const DEFAULT_INVOICE: Invoice = {
-  title: "TAX INVOICE",
-  invoiceNumber: "CRMA-0001",
-  issueDate: new Date().toISOString().slice(0, 10),
-  dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
-    .toISOString()
-    .slice(0, 10),
+  title: "Invoice",
+  invoiceNumber: "SLA698370248308",
+  issueDate: "2025-04-29",
+  invoiceTime: "20:53:34",
+  dueDate: "2025-04-29",
   currency: "INR",
+  qrType: "Dynamic QR Code",
+  irn: "",
   company: {
-    name: "Croma - Infiniti Retail Limited",
+    name: "INFINITI RETAIL LIMITED (trading as Croma)",
     address:
-      "Unit No. 701 & 702, 7th Floor\nKensington B, Hiranandani Business Park\nPowai, Mumbai - 400076",
-    email: "support@croma.com",
-    phone: "+91 7207 666 000",
-    website: "https://www.croma.com",
-    taxId: "AACCI0203K",
-    gstin: "27AACCI0203K1ZV",
+      "Unit No.701 & 702, Wing A, 7th Floor, Kaledonia, Sahar Road, Andheri (East), Mumbai 400069, India",
+    email: "customersupport@croma.com",
+    phone: "1800-572-7662",
+    phoneAlt: "040-46517910",
+    website: "www.croma.com",
+    taxId: "U31900MH2005PLC158120",
+    gstin: "27AACCV1726H1ZE",
     state: "Maharashtra",
     stateCode: "27",
   },
   client: {
-    name: "Rahul Sharma",
+    name: "Nirmal Yadav",
     address:
-      "Flat 502, Lake View Residency\nSector 17, Vashi\nNavi Mumbai - 400703",
-    email: "rahul.sharma@example.com",
-    phone: "+91 98200 12345",
+      "Ambernath, Ambernath, Ambernath, AMBERNATH, Maharashtra-27, 421501",
+    email: "",
+    phone: "9096551379",
+    phoneAlt: "",
     website: "",
-    taxId: "ASDPS1234B",
-    gstin: "27ASDPS1234B1Z5",
+    taxId: "",
+    gstin: "",
     state: "Maharashtra",
     stateCode: "27",
   },
-  notes:
-    "Thank you for shopping at Croma. Please retain this invoice for warranty and service support.",
+  notes: [
+    "This is a computer generated invoice and does not require a signature.",
+    "Wherever applicable, GST is levied at applicable rate on the value determined as per Rule 32(5) of the CGST Rules.",
+    "Covered under reverse charge: No.",
+  ].join("\n"),
   terms:
     "Payment accepted via UPI, credit/debit cards, or net banking. Goods once sold are covered by Croma's return and refund policy.",
+  paymentSummary:
+    "Card: Axis EDC Tender • ****1254 | Card: HDFC EDC Tender • ****3526",
   lineItems: [
     {
       id: createId(),
-      description: "Samsung 55\" QLED Smart TV (QA55Q60BAKLXL)",
+      description: "DELL 15 INSP 3520 12Gi3 8GBN 512GBSD+OB",
+      serialNumber: "98ZSN04",
       quantity: 1,
-      rate: 71990,
+      rate: 29971.44,
       taxPercent: 18,
-      hsnSac: "85287213",
+      hsnSac: "84713010",
     },
     {
       id: createId(),
-      description: "Croma 2 Year Extended Warranty",
+      description: "Dell 15 Essential Backpack New",
+      serialNumber: "",
       quantity: 1,
-      rate: 5499,
+      rate: 846.6,
       taxPercent: 18,
-      hsnSac: "998714",
+      hsnSac: "42021220",
     },
   ],
-  placeOfSupply: "Maharashtra (27)",
+  placeOfSupply: "Maharashtra-27",
   gstTreatment: "intra",
   ewayBill: "",
+  charges: {
+    shipping: 0,
+    wrapping: 0,
+    donation: 0,
+  },
+  qrImageDataUrl: null,
 };
 
 const DEFAULT_LOGO = cromaLogo;
@@ -928,11 +963,23 @@ function applyImportedInvoice(current: Invoice, imported: ImportedInvoice): Invo
   if (imported.dueDate) {
     next.dueDate = imported.dueDate;
   }
+  if (imported.invoiceTime) {
+    next.invoiceTime = imported.invoiceTime;
+  }
   if (imported.notes) {
     next.notes = imported.notes;
   }
   if (imported.terms) {
     next.terms = imported.terms;
+  }
+  if (typeof imported.qrType === "string") {
+    next.qrType = imported.qrType;
+  }
+  if (typeof imported.irn === "string") {
+    next.irn = imported.irn;
+  }
+  if (typeof imported.paymentSummary === "string") {
+    next.paymentSummary = imported.paymentSummary;
   }
   if (imported.placeOfSupply) {
     next.placeOfSupply = imported.placeOfSupply;
@@ -942,6 +989,12 @@ function applyImportedInvoice(current: Invoice, imported: ImportedInvoice): Invo
   }
   if (typeof imported.ewayBill === "string") {
     next.ewayBill = imported.ewayBill;
+  }
+  if (imported.charges) {
+    next.charges = { ...next.charges, ...imported.charges };
+  }
+  if (typeof imported.qrImageDataUrl === "string") {
+    next.qrImageDataUrl = imported.qrImageDataUrl;
   }
   if (imported.currency) {
     const normalized = imported.currency.toUpperCase();
@@ -1015,6 +1068,11 @@ function App() {
         setInvoice({
           ...defaults,
           ...parsed.invoice,
+          invoiceTime: parsed.invoice.invoiceTime ?? defaults.invoiceTime,
+          qrType: parsed.invoice.qrType ?? defaults.qrType,
+          irn: parsed.invoice.irn ?? defaults.irn,
+          paymentSummary:
+            parsed.invoice.paymentSummary ?? defaults.paymentSummary,
           currency: CURRENCY_CODE_SET.has(normalizedCurrency)
             ? normalizedCurrency
             : DEFAULT_INVOICE.currency,
@@ -1024,6 +1082,14 @@ function App() {
               : defaults.gstTreatment,
           placeOfSupply: parsed.invoice.placeOfSupply ?? defaults.placeOfSupply,
           ewayBill: parsed.invoice.ewayBill ?? defaults.ewayBill,
+          charges: {
+            ...defaults.charges,
+            ...(parsed.invoice.charges ?? {}),
+          },
+          qrImageDataUrl:
+            Object.prototype.hasOwnProperty.call(parsed.invoice, "qrImageDataUrl")
+              ? parsed.invoice.qrImageDataUrl
+              : defaults.qrImageDataUrl,
           company: { ...DEFAULT_INVOICE.company, ...parsed.invoice.company },
           client: { ...DEFAULT_INVOICE.client, ...parsed.invoice.client },
           lineItems:
@@ -1071,10 +1137,159 @@ function App() {
       },
       { subtotal: 0, cgst: 0, sgst: 0, igst: 0 }
     );
+    const chargesTotal =
+      (invoice.charges?.shipping ?? 0) +
+      (invoice.charges?.wrapping ?? 0) +
+      (invoice.charges?.donation ?? 0);
     const tax = aggregate.cgst + aggregate.sgst + aggregate.igst;
-    const total = aggregate.subtotal + tax;
-    return { ...aggregate, tax, total };
+    const total = aggregate.subtotal + tax + chargesTotal;
+    return { ...aggregate, tax, total, chargesTotal };
+  }, [invoice.charges, invoice.lineItems, invoice.gstTreatment]);
+
+  const taxSummary = useMemo(() => {
+    const summary = new Map<
+      string,
+      { type: string; rate: number; taxable: number; tax: number }
+    >();
+    invoice.lineItems.forEach((item) => {
+      const taxableValue = item.quantity * item.rate;
+      const rate = Math.max(Number.isFinite(item.taxPercent) ? item.taxPercent : 0, 0);
+      if (rate <= 0 || taxableValue <= 0) {
+        return;
+      }
+      const gstAmount = (taxableValue * rate) / 100;
+      if (invoice.gstTreatment === "inter") {
+        const key = `IGST-${rate}`;
+        const entry = summary.get(key) ?? {
+          type: "IGST",
+          rate,
+          taxable: 0,
+          tax: 0,
+        };
+        entry.taxable += taxableValue;
+        entry.tax += gstAmount;
+        summary.set(key, entry);
+      } else {
+        const halfRate = rate / 2;
+        const halfTax = gstAmount / 2;
+        const cgstKey = `CGST-${halfRate}`;
+        const cgstEntry = summary.get(cgstKey) ?? {
+          type: "CGST",
+          rate: halfRate,
+          taxable: 0,
+          tax: 0,
+        };
+        cgstEntry.taxable += taxableValue;
+        cgstEntry.tax += halfTax;
+        summary.set(cgstKey, cgstEntry);
+
+        const sgstKey = `SGST-${halfRate}`;
+        const sgstEntry = summary.get(sgstKey) ?? {
+          type: "SGST",
+          rate: halfRate,
+          taxable: 0,
+          tax: 0,
+        };
+        sgstEntry.taxable += taxableValue;
+        sgstEntry.tax += halfTax;
+        summary.set(sgstKey, sgstEntry);
+      }
+    });
+    return Array.from(summary.values());
   }, [invoice.lineItems, invoice.gstTreatment]);
+
+  const amountFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    []
+  );
+
+  const formatAmount = (value: number) => amountFormatter.format(value);
+
+  const quantityFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-IN", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }),
+    []
+  );
+
+  const formatQuantity = (value: number) => quantityFormatter.format(value);
+
+  const currencySymbol = useMemo(() => {
+    try {
+      const parts = currencyFormatter.formatToParts(0);
+      const currencyPart = parts.find((part) => part.type === "currency");
+      return currencyPart?.value ?? currencyForFormatter;
+    } catch (error) {
+      console.warn("Unable to derive currency symbol", error);
+      return currencyForFormatter;
+    }
+  }, [currencyForFormatter, currencyFormatter]);
+
+  const sortedTaxSummary = useMemo(() => {
+    const order: Record<string, number> = { CGST: 0, SGST: 1, IGST: 2 };
+    return [...taxSummary].sort((a, b) => {
+      const aOrder = order[a.type] ?? 3;
+      const bOrder = order[b.type] ?? 3;
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+      if (a.rate !== b.rate) {
+        return a.rate - b.rate;
+      }
+      return a.taxable - b.taxable;
+    });
+  }, [taxSummary]);
+
+  const noteLines = useMemo(
+    () =>
+      invoice.notes
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0),
+    [invoice.notes]
+  );
+
+  const paymentSummaryText = useMemo(() => {
+    const parts = invoice.paymentSummary
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    return parts.length > 0 ? parts.join(" | ") : "—";
+  }, [invoice.paymentSummary]);
+
+  const companyMetaLine = useMemo(() => {
+    const parts: string[] = [];
+    if (invoice.company.gstin) {
+      parts.push(`GSTIN: ${invoice.company.gstin}`);
+    }
+    if (invoice.company.taxId) {
+      parts.push(`CIN: ${invoice.company.taxId}`);
+    }
+    if (invoice.company.website) {
+      parts.push(invoice.company.website);
+    }
+    return parts.join(" · ");
+  }, [invoice.company.gstin, invoice.company.taxId, invoice.company.website]);
+
+  const companyPhoneLine = useMemo(() => {
+    const phones = [invoice.company.phone, invoice.company.phoneAlt].filter(
+      (value) => value && value.trim().length > 0
+    );
+    return phones.join(" · ");
+  }, [invoice.company.phone, invoice.company.phoneAlt]);
+
+  const clientPhoneLine = useMemo(() => {
+    const phones = [invoice.client.phone, invoice.client.phoneAlt].filter(
+      (value) => value && value.trim().length > 0
+    );
+    return phones.join(" · ");
+  }, [invoice.client.phone, invoice.client.phoneAlt]);
 
   function handleCompanyChange<K extends keyof AddressBlock>(
     key: K,
@@ -1123,6 +1338,21 @@ function App() {
     }));
   }
 
+  function handleChargeChange(key: keyof Invoice["charges"], value: string) {
+    const cleaned = value.trim();
+    const amount = cleaned === "" ? 0 : Number.parseFloat(cleaned);
+    if (Number.isNaN(amount)) {
+      return;
+    }
+    setInvoice((prev) => ({
+      ...prev,
+      charges: {
+        ...prev.charges,
+        [key]: amount,
+      },
+    }));
+  }
+
   function addLineItem() {
     setInvoice((prev) => ({
       ...prev,
@@ -1131,6 +1361,7 @@ function App() {
         {
           id: createId(),
           description: "New service",
+          serialNumber: "",
           quantity: 1,
           rate: 0,
           taxPercent: 0,
@@ -1165,7 +1396,7 @@ function App() {
           ? {
               ...item,
               [key]:
-                key === "description" || key === "hsnSac"
+                key === "description" || key === "hsnSac" || key === "serialNumber"
                   ? value
                   : Number.isNaN(Number(value))
                   ? item[key]
@@ -1194,20 +1425,68 @@ function App() {
     }
     const title = `${invoice.invoiceNumber || "invoice"}`;
     const styles = `
-      body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 2rem; background: #f4f7fb; }
-      .preview { box-shadow: none !important; border: none !important; position: static !important; }
-      .preview * { color: #17212b !important; }
-      table { width: 100%; border-collapse: collapse; }
-      th, td { padding: 0.75rem 0; border-bottom: 1px solid rgba(23, 33, 43, 0.12); }
-      thead th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
-      thead th.numeric { text-align: right; }
-      .invoice-meta, .gst-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem 1.5rem; margin-top: 0.75rem; font-size: 0.9rem; }
-      .gst-meta { font-size: 0.85rem; }
-      .invoice-meta .label, .gst-meta .label { display: block; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(23, 33, 43, 0.6); }
-      .numeric { text-align: right; font-weight: 600; }
-      .numeric.light { font-weight: 500; }
-      tfoot td { font-weight: 700; }
-      .preview-attachments { page-break-inside: avoid; }
+      :root{
+        --ink:#0f172a;
+        --muted:#475569;
+        --line:#e2e8f0;
+        --accent:#0ea5e9;
+      }
+      *{ box-sizing:border-box; }
+      body{
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+        color:var(--ink); margin:0; background:#fafafa;
+      }
+      .invoice-container{
+        max-width:1000px; margin:24px auto; padding:24px; background:#fff; border:1px solid var(--line); border-radius:18px;
+        box-shadow: 0 10px 20px rgba(2,8,23,.06);
+      }
+      .invoice-header{
+        display:flex; gap:24px; align-items:center; border-bottom:2px solid var(--line); padding-bottom:16px;
+      }
+      .invoice-header .brand{ display:flex; gap:16px; align-items:center; flex:1; }
+      .invoice-header .brand-logo{ width:96px; height:96px; border:1px solid var(--line); border-radius:12px; display:flex; align-items:center; justify-content:center; background:#f8fafc; overflow:hidden; }
+      .invoice-header .brand-logo img{ max-width:100%; max-height:100%; object-fit:contain; }
+      .invoice-header .brand h1{ font-size:22px; margin:0 0 4px; letter-spacing:.2px; }
+      .invoice-header .brand .sub{ color:var(--muted); font-size:13px; }
+      .invoice-header .meta{ text-align:right; }
+      .invoice-header .meta h2{ margin:0; font-size:24px; }
+      .invoice-header .meta .small{ color:var(--muted); font-size:12px; }
+      .invoice-header .badge{ display:inline-block; padding:4px 10px; border:1px dashed var(--accent); color:var(--accent); border-radius:999px; font-size:12px; font-weight:600; margin-bottom:8px; }
+      .invoice-template .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin:18px 0 0; }
+      .invoice-template .card{ border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff; }
+      .invoice-template .card h3{ margin:0 0 8px; font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+      .invoice-template .card p{ margin:2px 0; font-size:14px; }
+      .invoice-template table{ width:100%; border-collapse:collapse; }
+      .invoice-template table.items{ margin-top:18px; font-size:14px; }
+      .invoice-template table.items th,
+      .invoice-template table.items td{ padding:10px 12px; border-bottom:1px solid var(--line); }
+      .invoice-template table.items thead th{ text-align:left; font-size:12px; color:#334155; text-transform:uppercase; letter-spacing:.08em; background:#f8fafc; }
+      .invoice-template table.items .right{ text-align:right; }
+      .invoice-template table.items tfoot td{ font-weight:600; }
+      .invoice-template .totals{ margin-top:18px; display:grid; grid-template-columns: 1fr minmax(260px, 30%); gap:16px; align-items:start; }
+      .invoice-template .box{ border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff; }
+      .invoice-template .box table{ width:100%; border-collapse:collapse; font-size:14px; }
+      .invoice-template .box td{ padding:6px 0; }
+      .invoice-template .box .total-label,
+      .invoice-template .box .total-value{ border-top:1px solid var(--line); font-weight:700; padding-top:10px; }
+      .invoice-template .box .grand{ font-size:18px; font-weight:800; }
+      .invoice-template .qr-row{ display:flex; gap:12px; align-items:center; margin-top:12px; }
+      .invoice-template .qr{ width:120px; height:120px; border:1px dashed var(--line); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted); overflow:hidden; }
+      .invoice-template .qr img{ width:100%; height:100%; object-fit:cover; }
+      .invoice-template .muted{ color:var(--muted); font-size:12px; }
+      .invoice-template .notes{ margin-top:12px; font-size:12px; color:var(--muted); }
+      .invoice-template .notes div{ margin-bottom:4px; }
+      .invoice-template .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+      .invoice-template .btn{ border:1px solid var(--line); background:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+      .invoice-template .btn.primary{ background:var(--accent); color:#fff; border-color:transparent; }
+      .invoice-template .preview-attachments{ margin-top:16px; font-size:12px; }
+      .invoice-template .preview-attachments ul{ margin:8px 0 0; padding-left:18px; }
+      @media print{
+        body{ background:#fff; }
+        .invoice-container{ box-shadow:none; border:none; margin:0; border-radius:0; }
+        .invoice-template .actions{ display:none; }
+        a[href]:after{ content:"" !important; }
+      }
     `;
     doc.document.write(`<!doctype html>
       <html>
@@ -1373,6 +1652,11 @@ function App() {
         setInvoice({
           ...defaults,
           ...parsed.invoice,
+          invoiceTime: parsed.invoice.invoiceTime ?? defaults.invoiceTime,
+          qrType: parsed.invoice.qrType ?? defaults.qrType,
+          irn: parsed.invoice.irn ?? defaults.irn,
+          paymentSummary:
+            parsed.invoice.paymentSummary ?? defaults.paymentSummary,
           currency: CURRENCY_CODE_SET.has(normalizedCurrency)
             ? normalizedCurrency
             : DEFAULT_INVOICE.currency,
@@ -1382,6 +1666,14 @@ function App() {
               : defaults.gstTreatment,
           placeOfSupply: parsed.invoice.placeOfSupply ?? defaults.placeOfSupply,
           ewayBill: parsed.invoice.ewayBill ?? defaults.ewayBill,
+          charges: {
+            ...defaults.charges,
+            ...(parsed.invoice.charges ?? {}),
+          },
+          qrImageDataUrl:
+            Object.prototype.hasOwnProperty.call(parsed.invoice, "qrImageDataUrl")
+              ? parsed.invoice.qrImageDataUrl
+              : defaults.qrImageDataUrl,
           company: {
             ...DEFAULT_INVOICE.company,
             ...parsed.invoice.company,
@@ -1506,6 +1798,17 @@ function App() {
               />
             </label>
             <label>
+              Issue Time
+              <input
+                type="time"
+                step={1}
+                value={invoice.invoiceTime}
+                onChange={(event) =>
+                  handleInvoiceFieldChange("invoiceTime", event.target.value)
+                }
+              />
+            </label>
+            <label>
               Due Date
               <input
                 type="date"
@@ -1527,6 +1830,15 @@ function App() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label>
+              QR Badge Label
+              <input
+                value={invoice.qrType}
+                onChange={(event) =>
+                  handleInvoiceFieldChange("qrType", event.target.value)
+                }
+              />
             </label>
             <label>
               Place of Supply
@@ -1559,6 +1871,28 @@ function App() {
                 onChange={(event) =>
                   handleInvoiceFieldChange("ewayBill", event.target.value)
                 }
+              />
+            </label>
+            <label>
+              IRN
+              <input
+                value={invoice.irn}
+                onChange={(event) =>
+                  handleInvoiceFieldChange("irn", event.target.value)
+                }
+              />
+            </label>
+            <label className="full">
+              Payment Summary
+              <textarea
+                value={invoice.paymentSummary}
+                onChange={(event) =>
+                  handleInvoiceFieldChange(
+                    "paymentSummary",
+                    event.target.value
+                  )
+                }
+                rows={2}
               />
             </label>
           </div>
@@ -1594,6 +1928,15 @@ function App() {
                 />
               </label>
               <label>
+                Alternate Phone
+                <input
+                  value={invoice.company.phoneAlt}
+                  onChange={(event) =>
+                    handleCompanyChange("phoneAlt", event.target.value)
+                  }
+                />
+              </label>
+              <label>
                 Website
                 <input
                   value={invoice.company.website}
@@ -1603,7 +1946,7 @@ function App() {
                 />
               </label>
               <label>
-                PAN
+                CIN
                 <input
                   value={invoice.company.taxId}
                   onChange={(event) =>
@@ -1704,6 +2047,15 @@ function App() {
                 />
               </label>
               <label>
+                Alternate Phone
+                <input
+                  value={invoice.client.phoneAlt}
+                  onChange={(event) =>
+                    handleClientChange("phoneAlt", event.target.value)
+                  }
+                />
+              </label>
+              <label>
                 Website
                 <input
                   value={invoice.client.website}
@@ -1762,48 +2114,103 @@ function App() {
           </div>
 
           <div className="panel">
+            <h3>Additional Charges</h3>
+            <div className="grid">
+              <label>
+                Shipping
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={invoice.charges.shipping}
+                  onChange={(event) =>
+                    handleChargeChange("shipping", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                Wrapping
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={invoice.charges.wrapping}
+                  onChange={(event) =>
+                    handleChargeChange("wrapping", event.target.value)
+                  }
+                />
+              </label>
+              <label>
+                Donation
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={invoice.charges.donation}
+                  onChange={(event) =>
+                    handleChargeChange("donation", event.target.value)
+                  }
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="panel">
             <h3>Line Items</h3>
             <div className="table-scroll">
               <table className="line-items">
                 <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>HSN/SAC</th>
-                  <th className="numeric">Qty</th>
-                  <th className="numeric">Rate</th>
-                  <th className="numeric">GST %</th>
-                  <th className="numeric">Taxable Value</th>
-                  <th className="numeric">GST Amount</th>
-                  <th className="numeric">Line Total</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoice.lineItems.map((item) => {
-                  const taxableValue = item.quantity * item.rate;
-                  const gstAmount =
-                    (taxableValue * Math.max(item.taxPercent, 0)) / 100;
-                  const lineTotal = taxableValue + gstAmount;
-                  return (
-                    <tr key={item.id}>
-                      <td>
-                        <textarea
-                          value={item.description}
-                          onChange={(event) =>
-                            updateLineItem(
-                              item.id,
-                              "description",
-                              event.target.value
-                            )
-                          }
-                          rows={2}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          value={item.hsnSac}
-                          onChange={(event) =>
-                            updateLineItem(item.id, "hsnSac", event.target.value)
+                  <tr>
+                    <th>Description</th>
+                    <th>Serial No.</th>
+                    <th>HSN/SAC</th>
+                    <th className="numeric">Qty</th>
+                    <th className="numeric">Rate</th>
+                    <th className="numeric">GST %</th>
+                    <th className="numeric">Taxable Value</th>
+                    <th className="numeric">GST Amount</th>
+                    <th className="numeric">Line Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoice.lineItems.map((item) => {
+                    const taxableValue = item.quantity * item.rate;
+                    const gstAmount =
+                      (taxableValue * Math.max(item.taxPercent, 0)) / 100;
+                    const lineTotal = taxableValue + gstAmount;
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          <textarea
+                            value={item.description}
+                            onChange={(event) =>
+                              updateLineItem(
+                                item.id,
+                                "description",
+                                event.target.value
+                              )
+                            }
+                            rows={2}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            value={item.serialNumber ?? ""}
+                            onChange={(event) =>
+                              updateLineItem(
+                                item.id,
+                                "serialNumber",
+                                event.target.value
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            value={item.hsnSac}
+                            onChange={(event) =>
+                              updateLineItem(item.id, "hsnSac", event.target.value)
                           }
                         />
                       </td>
@@ -1961,288 +2368,279 @@ function App() {
         </section>
 
         <section className="preview" ref={previewRef}>
-          <div className="preview-header">
-            {logo ? (
-              <img src={logo} alt="Company logo" />
-            ) : (
-              <div className="logo-placeholder">Upload Logo</div>
-            )}
-            <div>
-              <h2>{invoice.title}</h2>
-              <div className="invoice-meta">
-                <div>
-                  <span className="label">Invoice #</span>
-                  <span>{invoice.invoiceNumber}</span>
-                </div>
-                <div>
-                  <span className="label">Issue Date</span>
-                  <span>{invoice.issueDate}</span>
-                </div>
-                <div>
-                  <span className="label">Due Date</span>
-                  <span>{invoice.dueDate}</span>
-                </div>
-              </div>
-              <div className="gst-meta">
-                <div>
-                  <span className="label">Place of Supply</span>
-                  <span>{invoice.placeOfSupply || "—"}</span>
-                </div>
-                <div>
-                  <span className="label">GST Treatment</span>
-                  <span>
-                    {invoice.gstTreatment === "inter"
-                      ? "Inter-state (IGST)"
-                      : "Intra-state (CGST + SGST)"}
-                  </span>
-                </div>
-                {invoice.ewayBill ? (
-                  <div>
-                    <span className="label">E-Way Bill</span>
-                    <span>{invoice.ewayBill}</span>
+          <div className="invoice-template">
+            <div className="invoice-container">
+              <header className="invoice-header">
+                <div className="brand">
+                  <div className="brand-logo">
+                    {logo ? (
+                      <img src={logo} alt="Company logo" />
+                    ) : (
+                      <span>Logo</span>
+                    )}
                   </div>
-                ) : null}
+                  <div>
+                    <h1 id="companyName">{invoice.company.name || "—"}</h1>
+                    <div className="sub" id="companySub">
+                      {companyMetaLine || "—"}
+                    </div>
+                  </div>
+                </div>
+                <div className="meta">
+                  <div className="badge" id="qrType">
+                    {invoice.qrType || "QR"}
+                  </div>
+                  <h2>{invoice.title || "Invoice"}</h2>
+                  <div className="small">
+                    No: <span id="invNo">{invoice.invoiceNumber || "—"}</span>
+                  </div>
+                  <div className="small">
+                    Date: <span id="invDate">{invoice.issueDate || "—"}</span>{" "}
+                    {invoice.invoiceTime ? (
+                      <span id="invTime">at {invoice.invoiceTime}</span>
+                    ) : (
+                      <span id="invTime" />
+                    )}
+                  </div>
+                  <div className="small">
+                    Place of Supply: <span id="pos">{invoice.placeOfSupply || "—"}</span>
+                  </div>
+                </div>
+              </header>
+
+              <section className="grid">
+                <div className="card">
+                  <h3>Bill From</h3>
+                  <p id="billFrom">
+                    {invoice.company.address
+                      ? invoice.company.address.split("\n").map((line, index) => (
+                          <span key={`from-${index}`}>
+                            {line}
+                            <br />
+                          </span>
+                        ))
+                      : "—"}
+                  </p>
+                  <p className="muted">
+                    Phone: <span id="phonePrimary">{companyPhoneLine || "—"}</span>
+                  </p>
+                  <p className="muted">
+                    Email: <span id="email">{invoice.company.email || "—"}</span>
+                  </p>
+                </div>
+                <div className="card">
+                  <h3>Bill To</h3>
+                  <p id="custName">
+                    <strong>{invoice.client.name || "—"}</strong>
+                  </p>
+                  <p id="custAddress">
+                    {invoice.client.address
+                      ? invoice.client.address.split("\n").map((line, index) => (
+                          <span key={`to-${index}`}>
+                            {line}
+                            <br />
+                          </span>
+                        ))
+                      : "—"}
+                  </p>
+                  <p className="muted">
+                    Mobile: <span id="custMobile">{clientPhoneLine || "—"}</span>
+                  </p>
+                </div>
+              </section>
+
+              <table className="items" id="itemsTable">
+                <thead>
+                  <tr>
+                    <th style={{ width: "42%" }}>Description</th>
+                    <th>HSN</th>
+                    <th className="right">Qty</th>
+                    <th className="right">Taxable ({currencySymbol})</th>
+                    <th className="right">Tax ({currencySymbol})</th>
+                    <th className="right">Total ({currencySymbol})</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoice.lineItems.length > 0 ? (
+                    invoice.lineItems.map((item) => {
+                      const taxableValue = item.quantity * item.rate;
+                      const gstAmount =
+                        (taxableValue * Math.max(item.taxPercent, 0)) / 100;
+                      const lineTotal = taxableValue + gstAmount;
+                      return (
+                        <tr key={item.id}>
+                          <td>
+                            {item.description || "—"}
+                            {item.serialNumber ? (
+                              <span className="muted">
+                                {" "}(SN: {item.serialNumber})
+                              </span>
+                            ) : null}
+                          </td>
+                          <td>{item.hsnSac || "—"}</td>
+                          <td className="right">{formatQuantity(item.quantity)}</td>
+                          <td className="right">{formatAmount(taxableValue)}</td>
+                          <td className="right">{formatAmount(gstAmount)}</td>
+                          <td className="right">{formatAmount(lineTotal)}</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="muted">
+                        Add line items to populate the invoice.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colSpan={3} className="right">
+                      Sub-Total
+                    </td>
+                    <td className="right" id="subtotalTaxable">
+                      {formatAmount(totals.subtotal)}
+                    </td>
+                    <td className="right" id="subtotalTax">
+                      {formatAmount(totals.tax)}
+                    </td>
+                    <td className="right" id="subtotalTotal">
+                      {formatAmount(totals.subtotal + totals.tax)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div className="totals">
+                <div className="box">
+                  <h3>Tax Summary</h3>
+                  <table id="taxSummaryTable">
+                    <thead>
+                      <tr>
+                        <th>Type</th>
+                        <th className="right">Rate</th>
+                        <th className="right">Taxable ({currencySymbol})</th>
+                        <th className="right">Tax ({currencySymbol})</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedTaxSummary.length > 0 ? (
+                        sortedTaxSummary.map((row, index) => (
+                          <tr key={`${row.type}-${row.rate}-${index}`}>
+                            <td>{row.type}</td>
+                            <td className="right">{formatQuantity(row.rate)}%</td>
+                            <td className="right">
+                              {formatAmount(row.taxable)}
+                            </td>
+                            <td className="right">{formatAmount(row.tax)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="muted">
+                            No taxable items yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="box">
+                  <table>
+                    <tbody>
+                      <tr>
+                        <td>Shipping</td>
+                        <td className="right" id="ship">
+                          {formatCurrency(invoice.charges.shipping)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Wrapping</td>
+                        <td className="right" id="wrap">
+                          {formatCurrency(invoice.charges.wrapping)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Donation</td>
+                        <td className="right" id="don">
+                          {formatCurrency(invoice.charges.donation)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="total-label">Total Tax</td>
+                        <td className="right total-value" id="totalTax">
+                          {formatCurrency(totals.tax)}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="grand">Grand Total</td>
+                        <td className="right grand" id="grand">
+                          {formatCurrency(totals.total)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div className="qr-row">
+                    <div className="qr" id="qrBox">
+                      {invoice.qrImageDataUrl ? (
+                        <img src={invoice.qrImageDataUrl} alt="QR code" />
+                      ) : (
+                        "QR"
+                      )}
+                    </div>
+                    <div>
+                      <div className="muted">
+                        IRN: <span id="irn">{invoice.irn || "—"}</span>
+                      </div>
+                      <div className="muted">
+                        Payment: <span id="paySummary">{paymentSummaryText}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="preview-columns">
-            <div>
-              <h3>Bill From</h3>
-              <p>
-                <strong>{invoice.company.name}</strong>
-                <br />
-                {invoice.company.address.split("\n").map((line, index) => (
-                  <span key={`company-address-${index}`}>
-                    {line}
-                    <br />
-                  </span>
-                ))}
-                {invoice.company.email && (
-                  <span>
-                    {invoice.company.email}
-                    <br />
-                  </span>
+              <div className="notes" id="notes">
+                {noteLines.length > 0 ? (
+                  noteLines.map((line, index) => (
+                    <div key={`note-${index}`}>• {line}</div>
+                  ))
+                ) : (
+                  <div className="muted">Add notes to display additional details.</div>
                 )}
-                {invoice.company.phone && (
-                  <span>
-                    {invoice.company.phone}
-                    <br />
-                  </span>
-                )}
-                {invoice.company.website && (
-                  <span>
-                    {invoice.company.website}
-                    <br />
-                  </span>
-                )}
-                {invoice.company.gstin && (
-                  <span>
-                    GSTIN: {invoice.company.gstin}
-                    <br />
-                  </span>
-                )}
-                {invoice.company.taxId && (
-                  <span>
-                    PAN: {invoice.company.taxId}
-                    <br />
-                  </span>
-                )}
-                {(invoice.company.state || invoice.company.stateCode) && (
-                  <span>
-                    State: {invoice.company.state}
-                    {invoice.company.stateCode
-                      ? ` (${invoice.company.stateCode})`
-                      : ""}
-                  </span>
-                )}
-              </p>
-            </div>
-            <div>
-              <h3>Bill To</h3>
-              <p>
-                <strong>{invoice.client.name}</strong>
-                <br />
-                {invoice.client.address.split("\n").map((line, index) => (
-                  <span key={`client-address-${index}`}>
-                    {line}
-                    <br />
-                  </span>
-                ))}
-                {invoice.client.email && (
-                  <span>
-                    {invoice.client.email}
-                    <br />
-                  </span>
-                )}
-                {invoice.client.phone && (
-                  <span>
-                    {invoice.client.phone}
-                    <br />
-                  </span>
-                )}
-                {invoice.client.website && (
-                  <span>
-                    {invoice.client.website}
-                    <br />
-                  </span>
-                )}
-                {invoice.client.gstin && (
-                  <span>
-                    GSTIN: {invoice.client.gstin}
-                    <br />
-                  </span>
-                )}
-                {invoice.client.taxId && (
-                  <span>
-                    PAN: {invoice.client.taxId}
-                    <br />
-                  </span>
-                )}
-                {(invoice.client.state || invoice.client.stateCode) && (
-                  <span>
-                    State: {invoice.client.state}
-                    {invoice.client.stateCode
-                      ? ` (${invoice.client.stateCode})`
-                      : ""}
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
+              </div>
 
-          <table className="preview-table">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>HSN/SAC</th>
-                <th className="numeric">Qty</th>
-                <th className="numeric">Rate</th>
-                <th className="numeric">Taxable Value</th>
-                <th>GST %</th>
-                <th className="numeric">GST Amount</th>
-                <th className="numeric">Line Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.lineItems.map((item) => {
-                const taxableValue = item.quantity * item.rate;
-                const gstRate = Math.max(item.taxPercent, 0);
-                const gstAmount = (taxableValue * gstRate) / 100;
-                const lineTotal = taxableValue + gstAmount;
-                const formatPercent = (value: number) => {
-                  if (Number.isInteger(value)) {
-                    return `${value}`;
-                  }
-                  return value
-                    .toFixed(2)
-                    .replace(/\.00$/, "")
-                    .replace(/(\.\d)0$/, "$1");
-                };
-                const gstLabel =
-                  invoice.gstTreatment === "inter"
-                    ? `${formatPercent(gstRate)}% IGST`
-                    : `${formatPercent(gstRate / 2)}% CGST + ${formatPercent(
-                        gstRate / 2
-                      )}% SGST`;
-                return (
-                  <tr key={item.id}>
-                    <td>{item.description}</td>
-                    <td>{item.hsnSac || "—"}</td>
-                    <td className="numeric light">{item.quantity}</td>
-                    <td className="numeric light">{formatCurrency(item.rate)}</td>
-                    <td className="numeric light">
-                      {formatCurrency(taxableValue)}
-                    </td>
-                    <td>{gstLabel}</td>
-                    <td className="numeric light">
-                      {formatCurrency(gstAmount)}
-                    </td>
-                    <td className="numeric light">
-                      {formatCurrency(lineTotal)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={7} className="numeric">
-                  Subtotal (Taxable Value)
-                </td>
-                <td className="numeric">
-                  {formatCurrency(totals.subtotal)}
-                </td>
-              </tr>
-              {invoice.gstTreatment === "inter" ? (
-                <tr>
-                  <td colSpan={7} className="numeric">
-                    IGST Total
-                  </td>
-                  <td className="numeric">
-                    {formatCurrency(totals.igst)}
-                  </td>
-                </tr>
-              ) : (
-                <>
-                  <tr>
-                    <td colSpan={7} className="numeric">
-                      CGST Total
-                    </td>
-                    <td className="numeric">
-                      {formatCurrency(totals.cgst)}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td colSpan={7} className="numeric">
-                      SGST Total
-                    </td>
-                    <td className="numeric">
-                      {formatCurrency(totals.sgst)}
-                    </td>
-                  </tr>
-                </>
+              <div className="invoice-actions">
+                <button
+                  className="invoice-btn"
+                  type="button"
+                  onClick={downloadPdf}
+                >
+                  Print / Save PDF
+                </button>
+                <button
+                  className="invoice-btn primary"
+                  type="button"
+                  onClick={exportTemplate}
+                >
+                  Download JSON
+                </button>
+              </div>
+
+              {attachments.length > 0 && (
+                <div className="preview-attachments">
+                  <h3>Attachments</h3>
+                  <ul>
+                    {attachments.map((file) => (
+                      <li key={file.id}>
+                        {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
-              <tr>
-                <td colSpan={7} className="numeric">
-                  GST Amount
-                </td>
-                <td className="numeric">
-                  {formatCurrency(totals.tax)}
-                </td>
-              </tr>
-              <tr>
-                <td colSpan={7} className="numeric grand-total">
-                  Total Invoice Value
-                </td>
-                <td className="numeric">
-                  {formatCurrency(totals.total)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <div className="preview-notes">
-            <h3>Notes</h3>
-            <p>{invoice.notes}</p>
-          </div>
-          <div className="preview-terms">
-            <h3>Terms</h3>
-            <p>{invoice.terms}</p>
-          </div>
-
-          {attachments.length > 0 && (
-            <div className="preview-attachments">
-              <h3>Attachments</h3>
-              <ul>
-                {attachments.map((file) => (
-                  <li key={file.id}>
-                    {file.name} ({(file.size / 1024).toFixed(1)} KB)
-                  </li>
-                ))}
-              </ul>
             </div>
-          )}
+          </div>
         </section>
       </main>
     </div>
