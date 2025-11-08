@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Vite: dev server",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": ".*"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\u001b\[?\d*;?\d*m?vite ",
+          "endsPattern": "ready in"
+        }
+      },
+      "detail": "Start the Vite development server for the EdMeds.shop app preview."
+    },
+    {
+      "label": "Vite: dev server (shareable)",
+      "type": "npm",
+      "script": "dev:host",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": ".*"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^\u001b\[?\d*;?\d*m?vite ",
+          "endsPattern": "ready in"
+        }
+      },
+      "detail": "Start Vite on 0.0.0.0:4173 so the preview can be forwarded to teammates."
+    },
+    {
+      "label": "Vite: build",
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": []
+    }
+  ]
+}
