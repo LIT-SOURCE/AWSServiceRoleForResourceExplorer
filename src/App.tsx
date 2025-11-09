@@ -1652,25 +1652,25 @@ function App() {
     const title = `${invoice.invoiceNumber || "invoice"}`;
     const styles = `
       :root{
-        --ink:#0f172a;
-        --muted:#475569;
-        --line:#e2e8f0;
-        --accent:#0ea5e9;
+        --ink:#0f2321;
+        --muted:#2f4b48;
+        --line:#d4ebe8;
+        --accent:#0f8682;
       }
       *{ box-sizing:border-box; }
       body{
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-        color:var(--ink); margin:0; background:#fafafa;
+        color:var(--ink); margin:0; background:#eef9f8;
       }
       .invoice-container{
         max-width:1000px; margin:24px auto; padding:24px; background:#fff; border:1px solid var(--line); border-radius:18px;
-        box-shadow: 0 10px 20px rgba(2,8,23,.06);
+        box-shadow: 0 10px 24px rgba(15,134,130,.12);
       }
       .invoice-header{
         display:flex; gap:24px; align-items:center; border-bottom:2px solid var(--line); padding-bottom:16px;
       }
       .invoice-header .brand{ display:flex; gap:16px; align-items:center; flex:1; }
-      .invoice-header .brand-logo{ width:96px; height:96px; border:1px solid var(--line); border-radius:12px; display:flex; align-items:center; justify-content:center; background:#f8fafc; overflow:hidden; }
+      .invoice-header .brand-logo{ width:96px; height:96px; border:1px solid var(--line); border-radius:12px; display:flex; align-items:center; justify-content:center; background:#f2f9f8; overflow:hidden; }
       .invoice-header .brand-logo img{ max-width:100%; max-height:100%; object-fit:contain; }
       .invoice-header .brand h1{ font-size:22px; margin:0 0 4px; letter-spacing:.2px; }
       .invoice-header .brand .sub{ color:var(--muted); font-size:13px; }
@@ -1686,7 +1686,7 @@ function App() {
       .invoice-template table.items{ margin-top:18px; font-size:14px; }
       .invoice-template table.items th,
       .invoice-template table.items td{ padding:10px 12px; border-bottom:1px solid var(--line); }
-      .invoice-template table.items thead th{ text-align:left; font-size:12px; color:#334155; text-transform:uppercase; letter-spacing:.08em; background:#f8fafc; }
+      .invoice-template table.items thead th{ text-align:left; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; background:#f2f9f8; }
       .invoice-template table.items .right{ text-align:right; }
       .invoice-template table.items tfoot td{ font-weight:600; }
       .invoice-template .totals{ margin-top:18px; display:grid; grid-template-columns: 1fr minmax(260px, 30%); gap:16px; align-items:start; }
@@ -1966,7 +1966,10 @@ function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1>Invoice Architect</h1>
+        <div className="header-title">
+          <h1>Invoice Architect</h1>
+          <span className="theme-badge">Croma Theme</span>
+        </div>
         <p>
           Craft, personalize, and export invoices entirely in your browser. Import
           custom templates, attach supporting PDFs, and save your progress for

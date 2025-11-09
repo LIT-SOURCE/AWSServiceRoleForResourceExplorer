@@ -1,6 +1,6 @@
 :root {
   color-scheme: light;
-  background-color: #f4f7fb;
+  background-color: #eef9f8;
 }
 
 * {
@@ -10,9 +10,10 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top right, #e0ebff, transparent 55%),
-    radial-gradient(circle at bottom left, #ffe8d2, transparent 45%),
-    #f4f7fb;
+  background: radial-gradient(circle at top right, rgba(15, 134, 130, 0.18),
+      transparent 55%),
+    radial-gradient(circle at bottom left, rgba(255, 209, 102, 0.22), transparent 45%),
+    #eef9f8;
 }
 
 #root {
