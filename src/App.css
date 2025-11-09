@@ -441,6 +441,28 @@ button.ghost:hover {
   align-items: start;
 }
 
+.preview .amount-block {
+  margin-top: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+}
+
+.preview .amount-block h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #475569;
+}
+
+.preview .amount-block p {
+  margin: 0;
+  font-weight: 600;
+  font-size: 15px;
+}
+
 .preview .box {
   border: 1px solid #e2e8f0;
   border-radius: 12px;

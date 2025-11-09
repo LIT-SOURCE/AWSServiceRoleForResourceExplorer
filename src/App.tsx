@@ -43,6 +43,7 @@ type Invoice = {
   currency: string;
   qrType: string;
   irn: string;
+  amountInWords: string;
   company: AddressBlock;
   client: AddressBlock;
   notes: string;
@@ -63,7 +64,12 @@ type Invoice = {
 type ImportedInvoice = Partial<
   Omit<
     Invoice,
-    "company" | "client" | "lineItems" | "charges" | "paymentSummary"
+    | "company"
+    | "client"
+    | "lineItems"
+    | "charges"
+    | "paymentSummary"
+    | "amountInWords"
   >
 > & {
   company?: Partial<AddressBlock>;
@@ -71,7 +77,218 @@ type ImportedInvoice = Partial<
   lineItems?: InvoiceLineItem[];
   charges?: Partial<Invoice["charges"]>;
   paymentSummary?: string;
+  amountInWords?: string;
 };
+
+const BELOW_TWENTY = [
+  "Zero",
+  "One",
+  "Two",
+  "Three",
+  "Four",
+  "Five",
+  "Six",
+  "Seven",
+  "Eight",
+  "Nine",
+  "Ten",
+  "Eleven",
+  "Twelve",
+  "Thirteen",
+  "Fourteen",
+  "Fifteen",
+  "Sixteen",
+  "Seventeen",
+  "Eighteen",
+  "Nineteen",
+];
+
+const TENS = [
+  "",
+  "",
+  "Twenty",
+  "Thirty",
+  "Forty",
+  "Fifty",
+  "Sixty",
+  "Seventy",
+  "Eighty",
+  "Ninety",
+];
+
+const CURRENCY_WORDS: Record<
+  string,
+  {
+    majorSingular: string;
+    majorPlural: string;
+    minorSingular: string;
+    minorPlural: string;
+    style: "indian" | "international";
+  }
+> = {
+  INR: {
+    majorSingular: "Rupee",
+    majorPlural: "Rupees",
+    minorSingular: "Paise",
+    minorPlural: "Paise",
+    style: "indian",
+  },
+  USD: {
+    majorSingular: "Dollar",
+    majorPlural: "Dollars",
+    minorSingular: "Cent",
+    minorPlural: "Cents",
+    style: "international",
+  },
+  EUR: {
+    majorSingular: "Euro",
+    majorPlural: "Euros",
+    minorSingular: "Cent",
+    minorPlural: "Cents",
+    style: "international",
+  },
+  GBP: {
+    majorSingular: "Pound",
+    majorPlural: "Pounds",
+    minorSingular: "Pence",
+    minorPlural: "Pence",
+    style: "international",
+  },
+};
+
+function twoDigitToWords(value: number) {
+  if (value < 20) {
+    return BELOW_TWENTY[value];
+  }
+  const tens = Math.floor(value / 10);
+  const units = value % 10;
+  return units > 0 ? `${TENS[tens]} ${BELOW_TWENTY[units]}` : TENS[tens];
+}
+
+function convertNumberToIndianWords(value: number): string {
+  if (value === 0) {
+    return BELOW_TWENTY[0];
+  }
+  const segments: string[] = [];
+  const crore = Math.floor(value / 10000000);
+  if (crore > 0) {
+    segments.push(`${convertNumberToIndianWords(crore)} Crore`);
+    value %= 10000000;
+  }
+  const lakh = Math.floor(value / 100000);
+  if (lakh > 0) {
+    segments.push(`${convertNumberToIndianWords(lakh)} Lakh`);
+    value %= 100000;
+  }
+  const thousand = Math.floor(value / 1000);
+  if (thousand > 0) {
+    segments.push(`${convertNumberToIndianWords(thousand)} Thousand`);
+    value %= 1000;
+  }
+  const hundred = Math.floor(value / 100);
+  if (hundred > 0) {
+    segments.push(`${convertNumberToIndianWords(hundred)} Hundred`);
+    value %= 100;
+  }
+  if (value > 0) {
+    if (segments.length > 0) {
+      segments.push("and");
+    }
+    segments.push(twoDigitToWords(value));
+  }
+  return segments.join(" ");
+}
+
+function convertNumberToInternationalWords(value: number): string {
+  if (value === 0) {
+    return BELOW_TWENTY[0];
+  }
+  const segments: string[] = [];
+  const units = [
+    { divisor: 1000000000, label: "Billion" },
+    { divisor: 1000000, label: "Million" },
+    { divisor: 1000, label: "Thousand" },
+    { divisor: 100, label: "Hundred" },
+  ];
+  for (const unit of units) {
+    if (value >= unit.divisor) {
+      const count = Math.floor(value / unit.divisor);
+      segments.push(
+        `${convertNumberToInternationalWords(count)} ${unit.label}`
+      );
+      value %= unit.divisor;
+    }
+  }
+  if (value > 0) {
+    if (segments.length > 0) {
+      segments.push("and");
+    }
+    segments.push(twoDigitToWords(value));
+  }
+  return segments.join(" ");
+}
+
+function convertAmountToWords(amount: number, currencyCode: string) {
+  const rounded = Math.round((Number.isFinite(amount) ? amount : 0) * 100) / 100;
+  const absolute = Math.abs(rounded);
+  const whole = Math.floor(absolute);
+  const fraction = Math.round((absolute - whole) * 100);
+  const currency = CURRENCY_WORDS[currencyCode] ?? {
+    majorSingular: currencyCode,
+    majorPlural: `${currencyCode}s`,
+    minorSingular: "Cent",
+    minorPlural: "Cents",
+    style: "international" as const,
+  };
+  const numberToWords =
+    currency.style === "indian"
+      ? convertNumberToIndianWords
+      : convertNumberToInternationalWords;
+  let result = "";
+  if (whole === 0) {
+    result = `Zero ${currency.majorPlural}`;
+  } else {
+    const majorLabel = whole === 1 ? currency.majorSingular : currency.majorPlural;
+    result = `${numberToWords(whole)} ${majorLabel}`;
+  }
+  if (fraction > 0) {
+    const minorLabel =
+      fraction === 1 ? currency.minorSingular : currency.minorPlural;
+    result = `${result} and ${numberToWords(fraction)} ${minorLabel}`;
+  }
+  if (rounded < 0) {
+    result = `Negative ${result}`;
+  }
+  return `${result} Only`;
+}
+
+function calculateInvoiceTotals(invoice: Invoice) {
+  const aggregate = invoice.lineItems.reduce(
+    (sum, item) => {
+      const taxableValue = item.quantity * item.rate;
+      const rate = Number.isFinite(item.taxPercent) ? item.taxPercent : 0;
+      const normalizedRate = Math.max(rate, 0);
+      const gstAmount = (taxableValue * normalizedRate) / 100;
+      sum.subtotal += taxableValue;
+      if (invoice.gstTreatment === "inter") {
+        sum.igst += gstAmount;
+      } else {
+        const split = gstAmount / 2;
+        sum.cgst += split;
+        sum.sgst += split;
+      }
+      return sum;
+    },
+    { subtotal: 0, cgst: 0, sgst: 0, igst: 0 }
+  );
+  const chargesTotal =
+    (invoice.charges?.shipping ?? 0) +
+    (invoice.charges?.wrapping ?? 0) +
+    (invoice.charges?.donation ?? 0);
+  const tax = aggregate.cgst + aggregate.sgst + aggregate.igst;
+  const total = aggregate.subtotal + tax + chargesTotal;
+  return { ...aggregate, tax, total, chargesTotal };
+}
 
 const createId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -87,6 +304,7 @@ const DEFAULT_INVOICE: Invoice = {
   currency: "INR",
   qrType: "Dynamic QR Code",
   irn: "",
+  amountInWords: "",
   company: {
     name: "INFINITI RETAIL LIMITED (trading as Croma)",
     address:
@@ -154,6 +372,12 @@ const DEFAULT_INVOICE: Invoice = {
 };
 
 const DEFAULT_LOGO = cromaLogo;
+
+const defaultTotals = calculateInvoiceTotals(DEFAULT_INVOICE);
+DEFAULT_INVOICE.amountInWords = convertAmountToWords(
+  defaultTotals.total,
+  DEFAULT_INVOICE.currency
+);
 
 const STORAGE_KEY = "invoice_workbench_state_v1";
 
@@ -981,6 +1205,9 @@ function applyImportedInvoice(current: Invoice, imported: ImportedInvoice): Invo
   if (typeof imported.paymentSummary === "string") {
     next.paymentSummary = imported.paymentSummary;
   }
+  if (typeof imported.amountInWords === "string") {
+    next.amountInWords = imported.amountInWords;
+  }
   if (imported.placeOfSupply) {
     next.placeOfSupply = imported.placeOfSupply;
   }
@@ -1073,6 +1300,8 @@ function App() {
           irn: parsed.invoice.irn ?? defaults.irn,
           paymentSummary:
             parsed.invoice.paymentSummary ?? defaults.paymentSummary,
+          amountInWords:
+            parsed.invoice.amountInWords ?? defaults.amountInWords,
           currency: CURRENCY_CODE_SET.has(normalizedCurrency)
             ? normalizedCurrency
             : DEFAULT_INVOICE.currency,
@@ -1118,33 +1347,10 @@ function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }, [invoice, logo, attachments]);
 
-  const totals = useMemo(() => {
-    const aggregate = invoice.lineItems.reduce(
-      (sum, item) => {
-        const taxableValue = item.quantity * item.rate;
-        const rate = Number.isFinite(item.taxPercent) ? item.taxPercent : 0;
-        const normalizedRate = Math.max(rate, 0);
-        const gstAmount = (taxableValue * normalizedRate) / 100;
-        sum.subtotal += taxableValue;
-        if (invoice.gstTreatment === "inter") {
-          sum.igst += gstAmount;
-        } else {
-          const split = gstAmount / 2;
-          sum.cgst += split;
-          sum.sgst += split;
-        }
-        return sum;
-      },
-      { subtotal: 0, cgst: 0, sgst: 0, igst: 0 }
-    );
-    const chargesTotal =
-      (invoice.charges?.shipping ?? 0) +
-      (invoice.charges?.wrapping ?? 0) +
-      (invoice.charges?.donation ?? 0);
-    const tax = aggregate.cgst + aggregate.sgst + aggregate.igst;
-    const total = aggregate.subtotal + tax + chargesTotal;
-    return { ...aggregate, tax, total, chargesTotal };
-  }, [invoice.charges, invoice.lineItems, invoice.gstTreatment]);
+  const totals = useMemo(
+    () => calculateInvoiceTotals(invoice),
+    [invoice.charges, invoice.lineItems, invoice.gstTreatment]
+  );
 
   const taxSummary = useMemo(() => {
     const summary = new Map<
@@ -1262,6 +1468,26 @@ function App() {
       .filter((line) => line.length > 0);
     return parts.length > 0 ? parts.join(" | ") : "—";
   }, [invoice.paymentSummary]);
+
+  const computedAmountInWords = useMemo(
+    () => convertAmountToWords(totals.total, currencyForFormatter),
+    [totals.total, currencyForFormatter]
+  );
+
+  useEffect(() => {
+    setInvoice((prev) => {
+      const trimmed = prev.amountInWords?.trim?.() ?? "";
+      if (trimmed.length > 0 || prev.amountInWords === computedAmountInWords) {
+        return prev;
+      }
+      return { ...prev, amountInWords: computedAmountInWords };
+    });
+  }, [computedAmountInWords]);
+
+  const amountInWordsDisplay = useMemo(() => {
+    const trimmed = invoice.amountInWords?.trim?.() ?? "";
+    return trimmed.length > 0 ? trimmed : computedAmountInWords;
+  }, [invoice.amountInWords, computedAmountInWords]);
 
   const companyMetaLine = useMemo(() => {
     const parts: string[] = [];
@@ -1464,6 +1690,9 @@ function App() {
       .invoice-template table.items .right{ text-align:right; }
       .invoice-template table.items tfoot td{ font-weight:600; }
       .invoice-template .totals{ margin-top:18px; display:grid; grid-template-columns: 1fr minmax(260px, 30%); gap:16px; align-items:start; }
+      .invoice-template .amount-block{ margin-top:18px; border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff; }
+      .invoice-template .amount-block h3{ margin:0 0 6px; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+      .invoice-template .amount-block p{ margin:0; font-weight:600; font-size:15px; }
       .invoice-template .box{ border:1px solid var(--line); border-radius:12px; padding:14px; background:#fff; }
       .invoice-template .box table{ width:100%; border-collapse:collapse; font-size:14px; }
       .invoice-template .box td{ padding:6px 0; }
@@ -1657,6 +1886,8 @@ function App() {
           irn: parsed.invoice.irn ?? defaults.irn,
           paymentSummary:
             parsed.invoice.paymentSummary ?? defaults.paymentSummary,
+          amountInWords:
+            parsed.invoice.amountInWords ?? defaults.amountInWords,
           currency: CURRENCY_CODE_SET.has(normalizedCurrency)
             ? normalizedCurrency
             : DEFAULT_INVOICE.currency,
@@ -1889,6 +2120,19 @@ function App() {
                 onChange={(event) =>
                   handleInvoiceFieldChange(
                     "paymentSummary",
+                    event.target.value
+                  )
+                }
+                rows={2}
+              />
+            </label>
+            <label className="full">
+              Amount in Words
+              <textarea
+                value={invoice.amountInWords}
+                onChange={(event) =>
+                  handleInvoiceFieldChange(
+                    "amountInWords",
                     event.target.value
                   )
                 }
@@ -2598,6 +2842,11 @@ function App() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="amount-block">
+                <h3>Amount in Words</h3>
+                <p id="amountWords">{amountInWordsDisplay}</p>
               </div>
 
               <div className="notes" id="notes">
