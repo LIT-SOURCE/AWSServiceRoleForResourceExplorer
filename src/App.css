@@ -476,6 +476,26 @@ button.ghost:hover {
   font-size: 14px;
 }
 
+.preview #taxSummaryTable th,
+.preview #taxSummaryTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.preview #taxSummaryTable thead th {
+  text-align: left;
+  font-size: 12px;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: #f8fafc;
+}
+
+.preview #taxSummaryTable .right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .preview .box td {
   padding: 6px 0;
 }
